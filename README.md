@@ -181,3 +181,13 @@ The console now tracks real Anthropic API token usage and cost, and shows it on 
 - New endpoint: `GET /api/usage` — aggregate tokens/cost across all runs, plus `api_key_configured` (boolean only; the key itself is never returned to the frontend).
 
 Env var needed for this: `ANTHROPIC_API_KEY` (optional — everything works at $0 without it).
+
+## Saved Default Templates (added)
+
+You no longer need to re-upload the bank's CATRA/TRA output templates for every run. Upload each once via the "Bank output templates" card at the top of the dashboard (or `POST /api/templates` with `kind=catra|tra` + `file`), and every future run reuses them automatically. To use a different template for a one-off run (e.g. the bank revises the format), attach a file in the "+ New run" drawer's optional override fields — this does not change the saved default.
+
+Templates are stored in the same backend as everything else (S3 if `S3_BUCKET` is set, else local `data/`), under `templates/catra_template.xlsx` and `templates/tra_template.xlsx`, with metadata in `templates/meta.json`.
+
+## Partial-Year Runs (added)
+
+The pipeline now accepts 1-4 quarterly statements per run — you don't have to wait for the full year. Submit Q1 as soon as it's available; the reports scope themselves to the quarters provided (CATRA/TRA templates leave the remaining quarter columns blank, and the Final Analysis notes it's a partial-year run). Re-run later with the additional quarters once available.

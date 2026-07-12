@@ -199,6 +199,7 @@ def _color_status(t, col):
 
 def build_final_analysis_actuals(summary, txns, recon, out_path):
     qs = [q for q in QUARTERS if q in summary]
+    qs_label = f"{qs[0]}\u2013{qs[-1]}" if len(qs) > 1 else qs[0]
     doc = Document()
     doc.styles["Normal"].font.name = "Arial"
     doc.styles["Normal"].font.size = Pt(10)
@@ -207,7 +208,7 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
     r = title.add_run("FINAL ANALYSIS — ESCROW (CATRA) ACCOUNT, FY 2024-25\nKanpur Lucknow Expressway Private Limited")
     r.font.size = Pt(16); r.font.bold = True; r.font.color.rgb = DARK
     sub = doc.add_paragraph(); sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = sub.add_run(f"Actuals basis — main CATRA account 922020065877321, {'-'.join(qs) if len(qs)>1 else qs[0]} FY2024-25 statement(s) — {date.today().strftime('%d-%m-%Y')}")
+    r = sub.add_run(f"Actuals basis — main CATRA account 922020065877321, {qs_label} FY2024-25 statement(s) — {date.today().strftime('%d-%m-%Y')}")
     r.font.size = Pt(9); r.font.italic = True
     if len(qs) < 4:
         note = doc.add_paragraph(); note.alignment = WD_ALIGN_PARAGRAPH.CENTER
