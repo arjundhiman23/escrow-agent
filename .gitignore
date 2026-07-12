@@ -4,3 +4,8 @@ output/
 data/
 .env
 *.log
+
+# confidential client source documents — not needed for the app to run;
+# uploaded per-run through the console instead
+kb/documents/
+kb/extracted/
