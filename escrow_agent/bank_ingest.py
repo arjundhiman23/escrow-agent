@@ -60,7 +60,7 @@ def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119")):
     if t.dc == "C":
         if "disbursement credit" in n or any(a in t.narration for a in loan_accounts):
             return "Proceed from Term Loan", "narration: loan disbursement"
-        if any(k in n for k in ("mutual fund redem", "fd matur", "fd closure", "trd", "fixed deposit")):
+        if any(k in n for k in ("mutual fund", "mutua", "fd matur", "fd closure", "trd", "fixed deposit")):
             return "From Redemption of Investments", "narration: investment redemption"
         # credit bearing an expense narration = probable reversal/refund. Bank convention
         # (note * on ATSL sheet) routes all non-redemption, non-loan credits to Other

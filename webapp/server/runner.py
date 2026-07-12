@@ -91,7 +91,8 @@ def execute_run(st, deal_id, run_id):
 
             _stage(st, deal_id, run_id, meta, "CATRA")
             catra_path, _ = build_catra(os.path.join(ind, meta["inputs"]["catra_template"]), summary,
-                                        os.path.join(outd, "CATRA_ANALYSIS_ATSL.xlsx"))
+                                        os.path.join(outd, "CATRA_ANALYSIS_ATSL.xlsx"),
+                                        deal_name=deal_name, account=meta["account"], fy=meta.get("fy", ""))
             _stage(st, deal_id, run_id, meta, "TRA")
             tra_path, _ = build_tra(os.path.join(ind, meta["inputs"]["tra_template"]), summary,
                                     os.path.join(outd, "TRA_Analysis_ATSL.xlsx"))

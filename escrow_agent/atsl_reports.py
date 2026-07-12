@@ -40,7 +40,7 @@ def _norm(s):
     return " ".join(str(s or "").replace("\xa0", " ").split()).lower()
 
 
-def build_catra(template_path, summary, out_path):
+def build_catra(template_path, summary, out_path, deal_name=None, account=None, fy=None, cust_id=None):
     """Fill the bank's CATRA workbook; keep only the ATSL sheet."""
     wb = load_workbook(template_path)
     atsl = next(sn for sn in wb.sheetnames if sn.lower().startswith("atsl"))
@@ -49,6 +49,29 @@ def build_catra(template_path, summary, out_path):
             del wb[sn]
     ws = wb[atsl]
 
+    # patch header cells (deal name / account / title / cust id) so the template
+    # doesn't keep showing whichever deal it was first created for
+    if deal_name or account or fy or cust_id:
+        for r in range(1, 6):
+            for c in range(1, 9):
+                v = ws.cell(row=r, column=c).value
+                if isinstance(v, str) and "CATRA Account Statement Analysis" in v and fy:
+                    ws.cell(row=r, column=c, value=f"CATRA Account Statement Analysis {fy}")
+                elif isinstance(v, str) and v.strip().rstrip("\xa0") == "KANPUR LUCKNOW" and deal_name:
+                    ws.cell(row=r, column=c, value=deal_name)
+        if account:
+            for r in range(1, 6):
+                for c in range(1, 9):
+                    left = ws.cell(row=r, column=c - 1).value if c > 1 else None
+                    if isinstance(left, str) and "CATRA Account Number" in left:
+                        ws.cell(row=r, column=c, value=account)
+        if cust_id:
+            for r in range(1, 6):
+                for c in range(1, 9):
+                    left = ws.cell(row=r, column=c - 1).value if c > 1 else None
+                    if isinstance(left, str) and "Cust ID" in left:
+                        ws.cell(row=r, column=c, value=cust_id)
+
     filled = 0
     for r in range(1, ws.max_row + 1):
         label = _norm(ws.cell(row=r, column=2).value)
@@ -56,26 +79,29 @@ def build_catra(template_path, summary, out_path):
             continue
         if label == "opening balance in tra":
             for q, c in QCOLS.items():
-                if q in summary:
-                    ws.cell(row=r, column=c, value=round(summary[q]["opening"], 2)); filled += 1
+                ws.cell(row=r, column=c).value = round(summary[q]["opening"], 2) if q in summary else None
+                if q in summary: filled += 1
         elif label == "closing balance in tra":
             for q, c in QCOLS.items():
-                if q in summary:
-                    ws.cell(row=r, column=c, value=round(summary[q]["closing"], 2)); filled += 1
+                ws.cell(row=r, column=c).value = round(summary[q]["closing"], 2) if q in summary else None
+                if q in summary: filled += 1
         else:
             for row_lab, key in CATRA_CREDIT_ROWS.items():
-                if label == _norm(row_lab):
+                if label.startswith(_norm(row_lab)):
                     for q, c in QCOLS.items():
-                        if q in summary:
-                            ws.cell(row=r, column=c, value=round(summary[q]["credits"][key], 2)); filled += 1
+                        ws.cell(row=r, column=c).value = round(summary[q]["credits"][key], 2) if q in summary else None
+                        if q in summary: filled += 1
                     break
             else:
                 for row_lab, key in CATRA_DEBIT_ROWS.items():
                     if label.startswith(_norm(row_lab)):
                         for q, c in QCOLS.items():
-                            if q in summary:
-                                ws.cell(row=r, column=c, value=round(summary[q]["debits"][key], 2)); filled += 1
+                            ws.cell(row=r, column=c).value = round(summary[q]["debits"][key], 2) if q in summary else None
+                            if q in summary: filled += 1
                         break
+    if deal_name:
+        safe = deal_name[:22].strip()
+        ws.title = f"ATSL {safe}"[:31]
     wb.save(out_path)
     return out_path, filled
 
@@ -107,12 +133,11 @@ def build_tra(template_path, summary, out_path):
     filled = 0
     for qi, hdr in enumerate(block_rows):
         q = QUARTERS[qi]
-        if q not in summary:
-            continue   # partial-year run: this quarter's statement not submitted yet — leave template blank
+        have = q in summary
         # totals row = hdr+2 (Credit in col C, Debit in col D)
-        ws.cell(row=hdr + 2, column=3, value=round(summary[q]["total_credit"], 2))
-        ws.cell(row=hdr + 2, column=4, value=round(summary[q]["total_debit"], 2))
-        filled += 2
+        ws.cell(row=hdr + 2, column=3).value = round(summary[q]["total_credit"], 2) if have else None
+        ws.cell(row=hdr + 2, column=4).value = round(summary[q]["total_debit"], 2) if have else None
+        if have: filled += 2
         # sub-category rows until the 'Total of Sub category' row
         r = hdr + 4
         while r <= ws.max_row:
@@ -121,14 +146,14 @@ def build_tra(template_path, summary, out_path):
                 break
             for prefix, (side, key) in TRA_ROW_MAP.items():
                 if lab.startswith(prefix):
-                    amt = round(summary[q][side][key], 2)
+                    amt = round(summary[q][side][key], 2) if have else None
                     if side == "credits":
-                        ws.cell(row=r, column=3, value=amt)
-                        ws.cell(row=r, column=4, value=0)
+                        ws.cell(row=r, column=3).value = amt
+                        ws.cell(row=r, column=4).value = 0 if have else None
                     else:
-                        ws.cell(row=r, column=3, value=0)
-                        ws.cell(row=r, column=4, value=amt)
-                    filled += 2
+                        ws.cell(row=r, column=3).value = 0 if have else None
+                        ws.cell(row=r, column=4).value = amt
+                    if have: filled += 2
                     break
             r += 1
 

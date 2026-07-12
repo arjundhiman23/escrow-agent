@@ -1,0 +1,149 @@
+# Structured deal extract — Kallagam-Meensurutti Highway Pvt. Ltd. (KMHPL)
+# Verified against source pages: CAM (native text, CAM592406210029) + Escrow Agreement OCR (67pp scanned).
+deal:
+  borrower: Kallagam-Meensurutti Highway Private Limited (KMHPL)
+  sponsor: Oriental Structural Engineers Private Limited (Oriental Group)
+  lender: Axis Bank Limited (consortium, Rs. 260 crore hold / 57% share; also Escrow Bank, Lenders' Agent)
+  authority: NHAI
+  facility: Rupee Term Loan of Rs. 455.60 crore (refinance + construction funding) + Mobilisation Advance BG sublimit Rs. 100 crore
+  facility_amount: Rs. 455.60 crore
+  project: >
+    Four-laning of Kallagam-Karuppur (Km 38.700 to 50.382) and two-laning with paved shoulder of
+    Karuppur-Meensurutti (Km 50.382 to 98.433), NH-227, Tamil Nadu, NHDP Phase-IV, HAM basis (59.733 km)
+  concession_agreement_signed: "2018-04-24"
+  cam_ref: CAM592406210029
+
+# ---------------------------------------------------------------- CATRA debit side
+# Escrow Agreement (Common Loan/Escrow mechanics doc) clause 2.5(B) — Operational Period Order of Priority
+order_of_priority:
+  - {priority: 1, code: STAT_DUES, item: i,   name: Statutory Dues,                 sub_account: KMHPL Statutory Dues OPN Sub-Account,
+     agreement_item: "2.5(B)(i)", desc: All Statutory Dues payable in connection with Project operation post-COD}
+  - {priority: 2, code: OM_EXP,    item: ii,  name: O&M Expenses,                   sub_account: KMHPL O&M Expenses OPN Sub-Account,
+     agreement_item: "2.5(B)(ii)", desc: O&M Expenses per Approved Operating Budget; Administrative Expenses passed through same-day}
+  - {priority: 3, code: NHAI_OM,   item: iii, name: NHAI O&M Expenses,              sub_account: KMHPL NHAI O&M Expenses OPN Sub-Account,
+     agreement_item: "2.5(B)(iii)", desc: O&M Expenses incurred and claimed by the Authority per Concession Agreement Art. 4.1.1(e)}
+  - {priority: 4, code: NHAI_DUES, item: iv,  name: NHAI Dues,                      sub_account: KMHPL NHAI Dues OPN Sub-Account,
+     agreement_item: "2.5(B)(iv)", desc: Amounts due to Authority towards NHAI Dues / premium per Concession Agreement}
+  - {priority: 5, code: DEBT_SERV, item: v,   name: Debt Service Payments,          sub_account: KMHPL Debt Service Payments OPN Sub-Account,
+     agreement_item: "2.5(B)(v)", desc: Debt Service Payments incl. Prepayment Premium; Annuity applied first to BG Facility then Term Loan}
+  - {priority: 6, code: NHAI_DMG,  item: vi,  name: NHAI Payments and Damages,      sub_account: KMHPL NHAI Payments and Damages OPN Sub-Account,
+     agreement_item: "2.5(B)(vi)", desc: NHAI Payments and Damages payable under Concession Agreement}
+  - {priority: 7, code: WCR,       item: vii, name: Opex Reserve (Working Capital Reserve), sub_account: KMHPL Opex Reserve OPN Sub-Account,
+     agreement_item: "2.5(B)(vii)", desc: Working-capital-equivalent reserve; used till first Annuity and between Annuity dates; replenished on Annuity receipt}
+  - {priority: 8, code: DSRA,      item: viii, name: Debt Service Reserve,          sub_account: KMHPL Debt Service Reserve OPN Sub-Account,
+     agreement_item: "2.5(B)(viii)", desc: DSRA = next principal instalment + next 6 months interest/fees; 25% at COD, balance from first 2 annuities}
+  - {priority: 9, code: MMRA,      item: ix,  name: Major Maintenance Reserve,      sub_account: KMHPL Major Maintenance Reserve OPN Sub-Account,
+     agreement_item: "2.5(B)(ix)", desc: Per Base Case Plan; usable on Operating Fund Account shortfall for major maintenance}
+  - {priority: 10, code: DISTRIB,  item: x,   name: Surplus / Distribution,         sub_account: KMHPL Surplus OPN Sub-Account,
+     agreement_item: "2.5(B)(x)", desc: Residual surplus after items (i)-(ix), applied per Clause 3.10 (Restricted Payments)}
+
+# CAM's embedded Waterfall Mechanism (item 35) — cross-check vs Escrow Agreement clause 2.5(B)
+sanction_waterfall:
+  - {step: 1,  text: To meet any statutory dues,                                              maps_to: STAT_DUES}
+  - {step: 2,  text: Construction related expenses (during construction period),               maps_to: CONSTR}
+  - {step: 3,  text: O&M expenses subject to ceiling (to extent of O&M Payments from NHAI),     maps_to: OM_EXP}
+  - {step: 4,  text: O&M Expenses and other costs incurred by the Authority,                    maps_to: NHAI_OM}
+  - {step: 5,  text: Amounts due and payable to the Authority,                                  maps_to: NHAI_DUES}
+  - {step: 6,  text: Interest service in relation to Facility,                                  maps_to: DEBT_SERV}
+  - {step: 7,  text: Scheduled principal repayment in relation to Facility,                     maps_to: DEBT_SERV}
+  - {step: 8,  text: Damages payable to the Authority per Concession Agreement,                 maps_to: NHAI_DMG}
+  - {step: 9,  text: Funding Working Capital Reserve Account,                                   maps_to: WCR}
+  - {step: 10, text: Funding the DSRA to the required DSRA Amount,                              maps_to: DSRA}
+  - {step: 11, text: Funding the MMRA to the required MMR Amount,                               maps_to: MMRA}
+  - {step: 12, text: Cash Sweep if applicable,                                                  maps_to: CASH_SWEEP}
+  - {step: 13, text: Distribute residual amounts subject to Restricted Payments,                maps_to: DISTRIB}
+
+waterfall_divergences:
+  - CAM waterfall (item 35) has separate steps for construction-period expenses (step 2) and a Cash Sweep
+    step (step 12); the Escrow Agreement's Operational Period Order of Priority (2.5(B)) has neither as a
+    distinct numbered item — construction-period spend is governed separately via the KMHPL Construction
+    Fund Account, and no explicit Cash Sweep sub-account appears in the operational waterfall. Confirm
+    whether Cash Sweep is applied within the Surplus/Distribution step (x) or is a Facility-level mechanic.
+  - The CAM waterfall's step 8 (damages) sits after debt service, matching Escrow Agreement item (vi); order
+    is otherwise consistent between the two documents.
+
+# ---------------------------------------------------------------- CATRA credit side
+# Six Retention Accounts under the main KMHPL Escrow Account per clause 2.3(ii); deposit categories inferred
+# from account purposes (Construction Fund, Operating Fund, Insurance Proceeds, Termination Proceeds &
+# General Compensation, Distribution, Enforcement Proceeds).
+permitted_deposits:
+  - {code: EQUITY,     item: a, name: Equity / Sponsor subscription monies}
+  - {code: DISBURSE,   item: b, name: Facility disbursements (Construction Period)}
+  - {code: ANNUITY,    item: c, name: Annuity Collection incl. O&M Receipts and Interest on Annuity}
+  - {code: PROCEEDS,   item: d, name: NHAI funding incl. Mobilisation Advance, Insurance Proceeds, Termination
+                                  Proceeds and General Compensation, Sponsor/Promoter monies (incl. DSRA/WCR funding)}
+  - {code: RETENTION,  item: e, name: Transfers between KMHPL Retention Accounts / Sub-Accounts}
+  - {code: INV_INCOME, item: f, name: Investment income on Permitted Investments (Liquid/Debt MFs rated AAA, FDs in Escrow Bank)}
+  - {code: OTHER_DEP,  item: g, name: Other amounts not required to be paid into another Retention Account}
+
+# ---------------------------------------------------------------- covenants
+covenants:
+  - id: CV1
+    source: Escrow Agreement 2.5(B)(vii) / CAM Reserve Accounts clause
+    rule: Opex/Working Capital Reserve = 6 months interest servicing + O&M expense per Base Case Plan; created at COD; used till first Annuity and between Annuity dates; replenished on NHAI payment receipt.
+  - id: CV2
+    source: Escrow Agreement 2.5(B)(viii) / CAM Reserve Accounts clause
+    rule: DSRA = next principal instalment + next 6 months interest/fees/obligations; 25% of DSRA created on/before COD; balance created from project cash accruals of the first two Annuity payments; toppable via Bank Guarantee in lieu of cash.
+  - id: CV3
+    source: Escrow Agreement 2.5(B)(ix) / CAM Reserve Accounts clause
+    rule: MMRA funded per Base Case Plan / LIE-recommended annexure; usable on Operating Fund Account shortfall for major maintenance; replaceable by Bank Guarantee.
+  - id: CV4
+    source: Escrow Agreement 2.5(B) proviso
+    rule: Annuity Payments required to top up the Opex Reserve are transferred directly from the Operating Fund Account to the Opex Reserve Sub-Account, notwithstanding the standard Order of Priority.
+  - id: CV5
+    source: Escrow Agreement 2.2(d)
+    rule: Escrow Bank shall not permit any Restricted Payment (or other Escrow Account monies) unless the Lenders' Agent has confirmed in writing that Restricted Payment Conditions are satisfied.
+  - id: CV6
+    source: Escrow Agreement 2.5(B) chapeau
+    rule: Borrower may not withdraw from the KMHPL Operating Fund Account otherwise than via the Operational Period Order of Priority on Cash Transfer Dates.
+  - id: CV7
+    source: CAM Sponsor Support clause
+    rule: Sponsor/Promoter funds brought in to cover cash mismatch are subordinated to the Facility; Sponsor waives EoD rights on such subordinated debt; shortfall funding due at least 2 business days prior to the relevant payment date.
+
+# ---------------------------------------------------------------- TRA source (CAM projected P&L, native text)
+# Rs. crore. FYE columns FY23-FY38 (16 years) as printed in CAM pages 33-34.
+projected_pnl:
+  fye: ['FY23','FY24','FY25','FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35','FY36','FY37','FY38']
+  income:
+    TPC Annuity:         [15.25, 32.0, 34.1, 36.1, 38.4, 40.7, 43.2, 45.8, 48.7, 51.6, 54.8, 58.1, 61.2, 63.1, 68.7, 34.5]
+    O&M:                 [3.8, 9.3, 9.7, 10.1, 10.5, 10.9, 11.3, 11.8, 12.3, 12.7, 13.3, 13.8, 14.3, 14.9, 15.5, 8.0]
+    Interest on Annuity: [26.4, 51.0, 48.8, 46.1, 43.5, 40.6, 37.8, 34.5, 31.1, 27.5, 23.8, 19.7, 15.4, 10.9, 6.3, 1.2]
+  income_total:          [45.4, 92.3, 92.5, 92.3, 92.3, 92.2, 92.3, 92.1, 92.0, 91.9, 91.9, 91.6, 91.0, 89.0, 90.5, 43.7]
+  opex:
+    Routine Maintenance: [1.96, 2.48, 2.61, 2.74, 2.88, 3.02, 3.17, 3.33, 3.50, 3.67, 3.85, 4.05, 4.25, 4.46, 4.68, 0.82]
+    Other O&M Exp:       [1.31, 1.66, 1.74, 1.83, 1.92, 2.01, 2.11, 2.22, 2.33, 2.45, 2.57, 2.70, 2.83, 2.97, 3.12, 0.55]
+    MMR Provisioning:    [5.89, 5.89, 5.89, 5.89, 5.89, 5.89, 5.00, 8.00, 9.13, 10.00, 12.00, 10.64, 0.98, 0.00, 55.02, 57.77]
+  opex_total:            [9.16, 10.03, 10.23, 10.45, 10.68, 10.92, 10.28, 13.55, 14.95, 16.12, 18.42, 17.39, 8.06, 7.44, 62.83, 59.14]
+  ebitda:                [36.25, 82.30, 82.28, 81.84, 81.61, 81.29, 82.01, 78.53, 77.06, 75.78, 73.45, 74.18, 82.90, 81.53, 27.66, -15.40]
+  interest:              [31.08, 35.81, 33.83, 31.93, 29.88, 27.77, 24.81, 21.80, 18.80, 15.78, 12.41, 9.03, 5.36, 1.70, 0.00, 0.00]
+  depreciation:          [30.35, 36.66, 36.56, 36.56, 36.56, 36.66, 36.56, 36.56, 36.56, 36.66, 36.56, 36.56, 36.56, 36.66, 36.56, 6.11]
+  pbt:                   [-25.18, 9.84, 11.89, 13.35, 15.16, 16.86, 20.64, 20.17, 21.70, 23.34, 24.48, 28.59, 40.98, 43.18, -8.90, -21.51]
+  csr:                   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  tax:                   [0.0, 5.87, 6.49, 6.43, 2.35, 2.11, 6.64, 6.63, 6.71, 1.55, 0.0, 5.58, 6.86, 6.80, 0.0, 0.0]
+  pat:                   [-25.18, 3.97, 5.40, 6.92, 12.81, 14.75, 14.00, 13.54, 14.99, 21.79, 24.48, 23.01, 34.12, 36.38, -8.90, -21.51]
+
+# No projected balance sheet (DSRA/WCR/MMR fund balances) table was present in this CAM — the reserve
+# sizing is only described narratively (see covenants CV1-CV3). Left absent; normalize_profile will
+# zero-fill with an explicit note so downstream reports flag rather than silently assume compliance.
+projected_balance_sheet: {}
+
+annuity_terms:
+  structure: >
+    27 semi-annual instalments; total annuity Rs. 726.41 crore, semi-annual instalment Rs. 24.21 crore
+    (base year 2021); repayment starts 7.5 months from COD, ends ~31-01-2036 (tentative), tail ~12 months
+    (3 annuities)
+  first_annuity: Annuity Start Date is 180 days from COD; Repayment Start Date is 7.5 months from COD
+  termination_payment: Not specified in extracted CAM pages — confirm separately
+  interest_on_annuity: 7.25% p.a. on reducing balance; interest during construction 8.75% p.a., post-1st-annuity 8.50% p.a. (8.25% at AA rating)
+
+notes:
+  - No projected Balance Sheet (DSRA/WCR/MMR fund tracking) table was found in the CAM pages reviewed —
+    reserve-adequacy checks will read fund balances as 0 until this is supplied or located elsewhere in the CAM.
+  - SCOD has been revised multiple times (original 22-Apr-2021; EOTs of 100+90+90 days recommended; CAM
+    references a further pending EOT request) — confirm actual/latest SCOD before treating COD-linked
+    covenants (DSRA 25% funding, WCR creation) as due.
+  - Upfront Sponsor Support for DSRA quoted at Rs. 7.56 crore in CAM assumptions — cross-check against the
+    25%-of-DSRA-at-COD rule in CV2 once the full DSRA Amount is known.
+  - Mobilisation Advance quoted at Rs. 107.1 crore in CAM assumptions.
+  - Axis Bank holds Rs. 260 crore (57%) of the Rs. 455.60 crore facility in a lending consortium — other
+    consortium members' shares are not in the extracted pages.

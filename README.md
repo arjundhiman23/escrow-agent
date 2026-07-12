@@ -217,3 +217,23 @@ The confirmed profile's covenants also feed the quarterly actuals Final Analysis
 
 ### New env var (optional)
 `AI_MODEL_EXTRACTION` (default `claude-sonnet-5`) — model used for deal-document extraction, separate from `AI_MODEL_CLASSIFICATION` (Haiku) used for quarterly transaction review.
+
+## Bug fixes (this session)
+
+Two real bugs surfaced while onboarding the second deal (Kallagam-Meensurutti Highway) that are worth flagging since they affected prior output too:
+
+1. **`CATRA_CREDIT_ROWS` used exact string matching (`==`) against template row labels that carry trailing
+   annotation marks** (e.g. `"Proceeds from Equity*"`, `"From Redemption of Investments**"`). This meant those
+   two rows were never actually written by the code — the earlier Kanpur Lucknow reconciliation only matched
+   the bank's figures because the source template *already contained* the correct values, coincidentally.
+   Fixed to use `.startswith()` like the debit-row matching already did. Re-verified: the full Kanpur Lucknow
+   FY2024-25 regression still ties out exactly (₹570.04cr inflow / ₹596.79cr outflow / COMPLIANT), confirming
+   this was a latent bug rather than a behavior change.
+2. **openpyxl silently ignores `ws.cell(row, col, value=None)`** — passing `value=None` is treated as a
+   read-only call, not a clear. This meant partial-year runs (fewer than 4 quarters) left whichever data was
+   already in the template file's unused quarter columns untouched, instead of blanking them — a real risk
+   when the "template" for a new deal happens to be another deal's previously-filled output (exactly what
+   happened onboarding Kallagam against the Kanpur Lucknow file). Fixed by using direct `cell.value = None`
+   attribute assignment instead, which does clear properly. Also broadened the investment-redemption keyword
+   rule in `bank_ingest.py` to match mutual-fund counterparty names without requiring the word "redemption"
+   in the narration, which cut Kallagam's review queue from 10/31 to 0/31 transactions.
