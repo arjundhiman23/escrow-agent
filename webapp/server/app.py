@@ -10,12 +10,15 @@ GET  /                           frontend
 """
 import io, os, re, threading, uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from webapp.server.storage import get_storage, read_meta, write_meta
+from webapp.server.storage import (
+    get_storage, read_meta, write_meta, get_template_meta, set_default_template, get_default_template,
+)
 from webapp.server.runner import execute_run, STAGES
 
 app = FastAPI(title="Escrow Analyst Console")
@@ -39,8 +42,8 @@ async def create_run(
     account: str = Form("922020065877321"),
     ai_assist: bool = Form(True),
     statements: list[UploadFile] = File(...),
-    catra_template: UploadFile = File(...),
-    tra_template: UploadFile = File(...),
+    catra_template: Optional[UploadFile] = File(None),
+    tra_template: Optional[UploadFile] = File(None),
 ):
     if not (1 <= len(statements) <= 4):
         raise HTTPException(400, "upload 1-4 quarterly statement files (names must contain Q1..Q4)")
@@ -50,9 +53,25 @@ async def create_run(
         name = _safe(f.filename)
         ST.put_bytes(f"runs/{run_id}/inputs/{name}", await f.read())
         stmt_names.append(name)
-    ct, tt = _safe(catra_template.filename), _safe(tra_template.filename)
-    ST.put_bytes(f"runs/{run_id}/inputs/{ct}", await catra_template.read())
-    ST.put_bytes(f"runs/{run_id}/inputs/{tt}", await tra_template.read())
+
+    template_source = {}
+    async def _resolve_template(kind, upload):
+        if upload is not None and upload.filename:
+            name = _safe(upload.filename)
+            data = await upload.read()
+            ST.put_bytes(f"runs/{run_id}/inputs/{name}", data)
+            template_source[kind] = "uploaded for this run"
+            return name
+        name, data = get_default_template(ST, kind)
+        if name is None:
+            raise HTTPException(400, f"no {kind.upper()} template provided and no saved default template "
+                                     f"exists yet — upload one for this run, or save a default in Templates first")
+        ST.put_bytes(f"runs/{run_id}/inputs/{name}", data)
+        template_source[kind] = "saved default"
+        return name
+
+    ct = await _resolve_template("catra", catra_template)
+    tt = await _resolve_template("tra", tra_template)
 
     meta = {
         "run_id": run_id, "deal_name": deal_name.strip(), "fy": fy.strip(),
@@ -60,11 +79,34 @@ async def create_run(
         "stages_done": [], "stages": STAGES, "created_at": _now(), "log": [],
         "ai_assist": bool(ai_assist),
         "inputs": {"statements": stmt_names, "catra_template": ct, "tra_template": tt},
+        "template_source": template_source,
         "outputs": [],
     }
     write_meta(ST, run_id, meta)
     threading.Thread(target=execute_run, args=(ST, run_id), daemon=True).start()
     return {"run_id": run_id}
+
+
+@app.get("/api/templates")
+def templates_status():
+    meta = get_template_meta(ST)
+    return {
+        "catra": meta.get("catra"),
+        "tra": meta.get("tra"),
+    }
+
+
+@app.post("/api/templates")
+async def upload_template(
+    kind: str = Form(...),
+    file: UploadFile = File(...),
+):
+    if kind not in ("catra", "tra"):
+        raise HTTPException(400, "kind must be 'catra' or 'tra'")
+    name = _safe(file.filename)
+    data = await file.read()
+    saved = set_default_template(ST, kind, name, data)
+    return {"ok": True, kind: saved}
 
 
 @app.get("/api/runs")
@@ -78,7 +120,7 @@ def list_runs():
         runs.append({k: m.get(k) for k in
                      ("run_id", "deal_name", "fy", "account", "status", "stage", "stages_done",
                       "verdict", "created_at", "finished_at", "stats", "error", "outputs",
-                      "ai_assist", "ai_usage")})
+                      "ai_assist", "ai_usage", "template_source")})
     runs.sort(key=lambda m: m.get("created_at") or "", reverse=True)
     return {"runs": runs, "stages": STAGES}
 

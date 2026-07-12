@@ -56,21 +56,25 @@ def build_catra(template_path, summary, out_path):
             continue
         if label == "opening balance in tra":
             for q, c in QCOLS.items():
-                ws.cell(row=r, column=c, value=round(summary[q]["opening"], 2)); filled += 1
+                if q in summary:
+                    ws.cell(row=r, column=c, value=round(summary[q]["opening"], 2)); filled += 1
         elif label == "closing balance in tra":
             for q, c in QCOLS.items():
-                ws.cell(row=r, column=c, value=round(summary[q]["closing"], 2)); filled += 1
+                if q in summary:
+                    ws.cell(row=r, column=c, value=round(summary[q]["closing"], 2)); filled += 1
         else:
             for row_lab, key in CATRA_CREDIT_ROWS.items():
                 if label == _norm(row_lab):
                     for q, c in QCOLS.items():
-                        ws.cell(row=r, column=c, value=round(summary[q]["credits"][key], 2)); filled += 1
+                        if q in summary:
+                            ws.cell(row=r, column=c, value=round(summary[q]["credits"][key], 2)); filled += 1
                     break
             else:
                 for row_lab, key in CATRA_DEBIT_ROWS.items():
                     if label.startswith(_norm(row_lab)):
                         for q, c in QCOLS.items():
-                            ws.cell(row=r, column=c, value=round(summary[q]["debits"][key], 2)); filled += 1
+                            if q in summary:
+                                ws.cell(row=r, column=c, value=round(summary[q]["debits"][key], 2)); filled += 1
                         break
     wb.save(out_path)
     return out_path, filled
@@ -103,6 +107,8 @@ def build_tra(template_path, summary, out_path):
     filled = 0
     for qi, hdr in enumerate(block_rows):
         q = QUARTERS[qi]
+        if q not in summary:
+            continue   # partial-year run: this quarter's statement not submitted yet — leave template blank
         # totals row = hdr+2 (Credit in col C, Debit in col D)
         ws.cell(row=hdr + 2, column=3, value=round(summary[q]["total_credit"], 2))
         ws.cell(row=hdr + 2, column=4, value=round(summary[q]["total_debit"], 2))
@@ -136,9 +142,11 @@ def build_tra(template_path, summary, out_path):
         if lab in ("tpc annuity", "interest on annuity", "o&m"):
             row_fill[r] = [0, 0, 0, 0]
         elif lab == "other o&m":
-            row_fill[r] = [round(summary[q]["debits"]["O&M Exp/Project Construction Payments"] / CR, 2) for q in QUARTERS]
+            row_fill[r] = [round(summary[q]["debits"]["O&M Exp/Project Construction Payments"] / CR, 2)
+                          if q in summary else 0 for q in QUARTERS]
         elif lab == "interest":
-            row_fill[r] = [round(summary[q]["credits"]["From Redemption of Investments"] / CR, 2) for q in QUARTERS]
+            row_fill[r] = [round(summary[q]["credits"]["From Redemption of Investments"] / CR, 2)
+                          if q in summary else 0 for q in QUARTERS]
     for r, vals in row_fill.items():
         for j, v in enumerate(vals):
             ws2.cell(row=r, column=4 + j, value=v)
@@ -190,6 +198,7 @@ def _color_status(t, col):
 
 
 def build_final_analysis_actuals(summary, txns, recon, out_path):
+    qs = [q for q in QUARTERS if q in summary]
     doc = Document()
     doc.styles["Normal"].font.name = "Arial"
     doc.styles["Normal"].font.size = Pt(10)
@@ -198,36 +207,40 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
     r = title.add_run("FINAL ANALYSIS — ESCROW (CATRA) ACCOUNT, FY 2024-25\nKanpur Lucknow Expressway Private Limited")
     r.font.size = Pt(16); r.font.bold = True; r.font.color.rgb = DARK
     sub = doc.add_paragraph(); sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = sub.add_run(f"Actuals basis — main CATRA account 922020065877321, Q1–Q4 FY2024-25 statements — {date.today().strftime('%d-%m-%Y')}")
+    r = sub.add_run(f"Actuals basis — main CATRA account 922020065877321, {'-'.join(qs) if len(qs)>1 else qs[0]} FY2024-25 statement(s) — {date.today().strftime('%d-%m-%Y')}")
     r.font.size = Pt(9); r.font.italic = True
+    if len(qs) < 4:
+        note = doc.add_paragraph(); note.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = note.add_run(f"Partial-year run — only {', '.join(qs)} submitted so far. Quarter-chain and full-year checks below are scoped to these quarters; re-run once the remaining quarters are available.")
+        r.font.size = Pt(9); r.font.italic = True; r.font.color.rgb = AMBER
 
     # compliance checks on actuals
     checks = []
     bal_ok = all(abs(summary[q]["opening"] + summary[q]["total_credit"] - summary[q]["total_debit"]
-                     - summary[q]["closing"]) < 0.01 for q in QUARTERS)
-    chain_ok = all(abs(summary[QUARTERS[i]]["closing"] - summary[QUARTERS[i + 1]]["opening"]) < 0.01
-                   for i in range(3))
+                     - summary[q]["closing"]) < 0.01 for q in qs)
+    chain_ok = all(abs(summary[qs[i]]["closing"] - summary[qs[i + 1]]["opening"]) < 0.01
+                   for i in range(len(qs) - 1))
     checks.append(["Balance integrity (per quarter & across quarters)",
                    "COMPLIANT" if bal_ok and chain_ok else "OVERBREACH",
                    "Opening + credits − debits = closing for each quarter; each closing carries to next opening; balance never negative"])
-    surplus = sum(summary[q]["debits"]["Surplus distribution to Borrower"] for q in QUARTERS)
+    surplus = sum(summary[q]["debits"]["Surplus distribution to Borrower"] for q in qs)
     checks.append(["No Restricted Payments during construction (Agreement 2.3(B)(m)(ii))",
                    "COMPLIANT" if surplus == 0 else "OVERBREACH",
                    "Surplus distribution to Borrower = 0 in all four quarters"])
-    stat_ok = all(summary[q]["debits"]["Statutory Payments"] > 0 for q in QUARTERS)
+    stat_ok = all(summary[q]["debits"]["Statutory Payments"] > 0 for q in qs)
     checks.append(["Statutory dues serviced (waterfall priority 1)",
                    "COMPLIANT" if stat_ok else "UNDERBREACH",
                    "Statutory payments made every quarter (Rs. " +
-                   ", ".join(f"{summary[q]['debits']['Statutory Payments']/CR:.2f}" for q in QUARTERS) + " cr)"])
-    ds_ok = all(summary[q]["debits"]["Debt servicing"] > 0 for q in QUARTERS)
+                   ", ".join(f"{summary[q]['debits']['Statutory Payments']/CR:.2f}" for q in qs) + " cr)"])
+    ds_ok = all(summary[q]["debits"]["Debt servicing"] > 0 for q in qs)
     checks.append(["Debt servicing maintained (waterfall priority 6-7)",
                    "COMPLIANT" if ds_ok else "UNDERBREACH",
                    "Debt servicing paid every quarter (Rs. " +
-                   ", ".join(f"{summary[q]['debits']['Debt servicing']/CR:.2f}" for q in QUARTERS) + " cr)"])
+                   ", ".join(f"{summary[q]['debits']['Debt servicing']/CR:.2f}" for q in qs) + " cr)"])
     checks.append(["Escrow routing of sponsor/promoter monies (2.3(A))", "COMPLIANT",
                    "PNC Infratech / PNC Infra Holdings infusions and loan disbursements visibly credited to the escrow account"])
-    pi_out = sum(summary[q]["debits"]["Permitted Investments"] for q in QUARTERS)
-    pi_in = sum(summary[q]["credits"]["From Redemption of Investments"] for q in QUARTERS)
+    pi_out = sum(summary[q]["debits"]["Permitted Investments"] for q in qs)
+    pi_in = sum(summary[q]["credits"]["From Redemption of Investments"] for q in qs)
     checks.append(["Permitted Investments round-trip via escrow (Sanction: redemption proceeds to escrow)",
                    "COMPLIANT",
                    f"Placements Rs. {pi_out/CR:.2f} cr; redemption proceeds Rs. {pi_in/CR:.2f} cr returned to the account"])
@@ -269,18 +282,18 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
                              ("Proceed from Term Loan", "credits", "Proceed from Term Loan"),
                              ("Total Inflows", None, None)]:
         if key:
-            rows.append([label] + [f"{summary[q]['credits'][key]/CR:,.2f}" for q in QUARTERS])
+            rows.append([label] + [f"{summary[q]['credits'][key]/CR:,.2f}" for q in qs])
         else:
-            rows.append([label] + [f"{summary[q]['total_credit']/CR:,.2f}" for q in QUARTERS])
+            rows.append([label] + [f"{summary[q]['total_credit']/CR:,.2f}" for q in qs])
     for label, key in [("O&M / Construction", "O&M Exp/Project Construction Payments"),
                        ("Debt servicing", "Debt servicing"),
                        ("Permitted Investments", "Permitted Investments"),
                        ("Statutory Payments", "Statutory Payments")]:
-        rows.append([label] + [f"{summary[q]['debits'][key]/CR:,.2f}" for q in QUARTERS])
-    rows.append(["Total Outflows"] + [f"{summary[q]['total_debit']/CR:,.2f}" for q in QUARTERS])
-    rows.append(["Opening balance"] + [f"{summary[q]['opening']/CR:,.2f}" for q in QUARTERS])
-    rows.append(["Closing balance"] + [f"{summary[q]['closing']/CR:,.2f}" for q in QUARTERS])
-    _table(doc, ["Particulars", "Q1", "Q2", "Q3", "Q4"], rows, widths=[2.6, 1.1, 1.1, 1.1, 1.1])
+        rows.append([label] + [f"{summary[q]['debits'][key]/CR:,.2f}" for q in qs])
+    rows.append(["Total Outflows"] + [f"{summary[q]['total_debit']/CR:,.2f}" for q in qs])
+    rows.append(["Opening balance"] + [f"{summary[q]['opening']/CR:,.2f}" for q in qs])
+    rows.append(["Closing balance"] + [f"{summary[q]['closing']/CR:,.2f}" for q in qs])
+    _table(doc, ["Particulars"] + qs, rows, widths=[2.6] + [1.1]*len(qs))
 
     _h(doc, "4. Compliance Checks (actuals)")
     t = _table(doc, ["Check", "Status", "Finding"], checks, widths=[2.5, 1.2, 3.3])

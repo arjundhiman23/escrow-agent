@@ -81,6 +81,17 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .run-cost b{color:var(--escrow)}
 .toggle-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);margin-top:2px}
 .toggle-row input{width:15px;height:15px}
+.tpl-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:18px}
+.tpl-card h3{font-size:13.5px;font-weight:700;margin-bottom:10px;color:var(--ink)}
+.tpl-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--paper)}
+.tpl-row:first-of-type{border-top:0}
+.tpl-name{flex:1;font-size:13px}
+.tpl-name .fn{font-family:var(--mono);color:var(--escrow);font-weight:600}
+.tpl-name .none{color:var(--steel);font-style:italic}
+.tpl-name .dt{color:var(--steel);font-size:11px;display:block;margin-top:2px}
+.tpl-upload-label{border:1px solid var(--line);border-radius:7px;padding:6px 12px;font:500 12px var(--sans);cursor:pointer;background:#fff}
+.tpl-upload-label:hover{border-color:var(--escrow);color:var(--escrow)}
+.tpl-upload-label input{display:none}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:44px;text-align:center;color:var(--steel)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;z-index:20}
 .toast.show{opacity:1}
@@ -97,7 +108,13 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 
 <main>
   <h1>Runs</h1>
-  <div class="sub">Upload quarterly CATRA statements and the bank templates; the agent runs in the background and produces the CATRA (ATSL), TRA and Final Analysis reports.</div>
+  <div class="sub">Upload quarterly CATRA statements; the agent runs in the background and produces the CATRA (ATSL), TRA and Final Analysis reports.</div>
+
+  <div class="tpl-card">
+    <h3>Bank output templates <span style="font-weight:400;color:var(--steel)">— saved once, reused by every run</span></h3>
+    <div id="tpl-rows">loading…</div>
+  </div>
+
   <div class="kpi-strip" id="kpis"></div>
   <div id="runs"></div>
 </main>
@@ -111,12 +128,10 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
   <div class="field"><label>Quarterly statements (1–4 files, names must contain Q1…Q4)</label>
     <label class="filebox" id="fb-st">Choose statement files…<input type="file" id="f-st" multiple accept=".xlsx"><div class="names" id="n-st"></div></label>
   </div>
-  <div class="field"><label>CATRA output template (bank format)</label>
-    <label class="filebox" id="fb-ct">Choose file…<input type="file" id="f-ct" accept=".xlsx"><div class="names" id="n-ct"></div></label>
-  </div>
-  <div class="field"><label>TRA output template (bank format)</label>
-    <label class="filebox" id="fb-tt">Choose file…<input type="file" id="f-tt" accept=".xlsx"><div class="names" id="n-tt"></div></label>
-    <div class="hint">Templates are reused as-is — layout, labels and formulas are preserved; only values are filled.</div>
+  <div class="field">
+    <div class="hint" id="run-tpl-hint">This run will use the saved default CATRA and TRA templates (see Templates above).</div>
+    <label class="filebox" id="fb-ct" style="margin-top:8px">Override CATRA template for this run only (optional)<input type="file" id="f-ct" accept=".xlsx"><div class="names" id="n-ct"></div></label>
+    <label class="filebox" id="fb-tt" style="margin-top:8px">Override TRA template for this run only (optional)<input type="file" id="f-tt" accept=".xlsx"><div class="names" id="n-tt"></div></label>
   </div>
   <div class="field">
     <label class="toggle-row"><input type="checkbox" id="ai-assist" checked> AI-assist review queue (Haiku model — only suggests categories for rows rules flag; never overrides rule-based totals)</label>
@@ -133,9 +148,42 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 const $ = id => document.getElementById(id);
 let STAGES = ["INGEST","CLASSIFY","VALIDATE","CATRA","TRA","FINAL"];
 let openLogs = new Set();
+let TEMPLATES = {catra:null, tra:null};
+
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+
+function tplRow(kind, label){
+  const t = TEMPLATES[kind];
+  const nameHtml = t
+    ? `<span class="fn">${t.filename}</span><span class="dt">saved ${fmtDate(t.uploaded_at)}</span>`
+    : `<span class="none">No default saved yet — upload one, or attach per-run in "+ New run"</span>`;
+  return `<div class="tpl-row">
+    <div class="tpl-name">${label}: ${nameHtml}</div>
+    <label class="tpl-upload-label">${t?'Replace':'Upload'}<input type="file" accept=".xlsx" onchange="uploadTemplate('${kind}', this)"></label>
+  </div>`;
+}
+async function loadTemplates(){
+  try{
+    const r = await fetch('/api/templates'); TEMPLATES = await r.json();
+    $('tpl-rows').innerHTML = tplRow('catra','CATRA template') + tplRow('tra','TRA template');
+    const hasBoth = TEMPLATES.catra && TEMPLATES.tra;
+    $('run-tpl-hint').textContent = hasBoth
+      ? 'This run will use the saved default CATRA and TRA templates (see Templates above).'
+      : 'No default template saved yet for at least one type — attach it below for this run, or save a default in Templates above first.';
+  }catch(e){}
+}
+async function uploadTemplate(kind, input){
+  const f = input.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('kind',kind); fd.append('file',f);
+  try{
+    const r = await fetch('/api/templates',{method:'POST',body:fd});
+    if(!r.ok) throw new Error((await r.json()).detail||r.statusText);
+    toast(`${kind.toUpperCase()} template saved as default`); loadTemplates();
+  }catch(e){ toast('Could not save template: '+e.message); }
+}
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
-function openDrawer(){ $('overlay').classList.add('open'); $('drawer').classList.add('open'); }
+function openDrawer(){ $('overlay').classList.add('open'); $('drawer').classList.add('open'); loadTemplates(); }
 function closeDrawer(){ $('overlay').classList.remove('open'); $('drawer').classList.remove('open'); }
 
 for (const [f,n,box] of [['f-st','n-st','fb-st'],['f-ct','n-ct','fb-ct'],['f-tt','n-tt','fb-tt']]){
@@ -150,14 +198,16 @@ async function startRun(){
   const st=$('f-st').files, ct=$('f-ct').files, tt=$('f-tt').files;
   if(!$('deal').value.trim() || !$('fy').value.trim()) return toast('Enter deal name and financial year');
   if(st.length<1||st.length>4) return toast('Choose 1–4 statement files');
-  if(ct.length!==1||tt.length!==1) return toast('Choose both bank templates');
   const bad=[...st].filter(f=>!/Q[1-4]/i.test(f.name));
   if(bad.length) return toast('Statement names must contain Q1…Q4: '+bad[0].name);
+  if(!ct.length && !(TEMPLATES.catra)) return toast('No CATRA template saved yet — upload one below, or save a default in Templates');
+  if(!tt.length && !(TEMPLATES.tra)) return toast('No TRA template saved yet — upload one below, or save a default in Templates');
   const fd=new FormData();
   fd.append('deal_name',$('deal').value); fd.append('fy',$('fy').value); fd.append('account',$('acct').value);
   fd.append('ai_assist', $('ai-assist').checked ? 'true' : 'false');
   [...st].forEach(f=>fd.append('statements',f));
-  fd.append('catra_template',ct[0]); fd.append('tra_template',tt[0]);
+  if(ct.length) fd.append('catra_template',ct[0]);
+  if(tt.length) fd.append('tra_template',tt[0]);
   $('startBtn').disabled=true; $('startBtn').textContent='Uploading…';
   try{
     const r=await fetch('/api/runs',{method:'POST',body:fd});
@@ -198,6 +248,10 @@ function statsLine(run){
     html += `<div class="run-cost">AI-assist off for this run</div>`;
   } else if(run.status==='completed'){
     html += `<div class="run-cost">AI-assist: no calls needed (all rows resolved by rules)</div>`;
+  }
+  if(run.template_source && Object.keys(run.template_source).length){
+    const parts = Object.entries(run.template_source).map(([k,v])=>`${k.toUpperCase()} ${v}`);
+    html += `<div class="run-cost">Templates: ${parts.join(' · ')}</div>`;
   }
   return html;
 }
@@ -274,8 +328,10 @@ async function refresh(){
   loadUsage();
 }
 refresh();
+loadTemplates();
 setInterval(()=>{ if(anyActive||openLogs.size) refresh(); }, 2000);
 setInterval(refresh, 15000);
+setInterval(loadTemplates, 20000);
 </script>
 </body>
 </html>

@@ -6,6 +6,7 @@ Layout (both backends):
   runs/{run_id}/outputs/<files>
 """
 import io, json, os, threading
+from datetime import datetime, timezone
 
 _LOCK = threading.Lock()
 
@@ -93,7 +94,34 @@ def get_storage():
     return LocalStorage(os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data")))
 
 
-# ---- meta helpers ----
+# ---- default template helpers (uploaded once, reused by every future run) ----
+TEMPLATE_KEYS = {"catra": "templates/catra_template.xlsx", "tra": "templates/tra_template.xlsx"}
+
+
+def get_template_meta(st):
+    try:
+        return json.loads(st.get_bytes("templates/meta.json").decode())
+    except Exception:
+        return {}
+
+
+def set_default_template(st, kind, filename, data: bytes):
+    st.put_bytes(TEMPLATE_KEYS[kind], data)
+    meta = get_template_meta(st)
+    meta[kind] = {"filename": filename, "uploaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    st.put_bytes("templates/meta.json", json.dumps(meta).encode())
+    return meta[kind]
+
+
+def get_default_template(st, kind):
+    """Returns (filename, bytes) or (None, None) if no default saved."""
+    meta = get_template_meta(st)
+    if kind not in meta or not st.exists(TEMPLATE_KEYS[kind]):
+        return None, None
+    return meta[kind]["filename"], st.get_bytes(TEMPLATE_KEYS[kind])
+
+
+# ---- run meta helpers ----
 def read_meta(st, run_id):
     return json.loads(st.get_bytes(f"runs/{run_id}/meta.json").decode())
 
