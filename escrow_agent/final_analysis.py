@@ -82,9 +82,11 @@ def build_final_analysis(extract, reserve_checks, out_path="output/Final_Analysi
     doc = Document()
     _style(doc)
 
+    deal_info = extract.get("deal", {})
+    borrower = deal_info.get("borrower", "Borrower not extracted — check source documents")
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = title.add_run("FINAL ANALYSIS — ESCROW ACCOUNT COMPLIANCE\nKanpur Lucknow Expressway Private Limited")
+    r = title.add_run(f"FINAL ANALYSIS — ESCROW ACCOUNT COMPLIANCE\n{borrower}")
     r.font.size = Pt(16); r.font.bold = True; r.font.color.rgb = DARK
     sub = doc.add_paragraph()
     sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -120,15 +122,19 @@ def build_final_analysis(extract, reserve_checks, out_path="output/Final_Analysi
 
     # ---------------- 2. Deal summary ----------------
     _h(doc, "2. Deal Summary (from KB)")
-    _table(doc, ["Item", "Detail"], [
-        ["Borrower", "Kanpur Lucknow Expressway Private Limited (SPV of PNC Infratech Limited)"],
-        ["Facility", "Rupee Term Loan of Rs. 779.75 crore — Axis Bank (sole lender, Escrow Bank, Lenders' Representative)"],
-        ["Project", "Six-lane (upgradable to eight) Kanpur Lucknow Expressway incl. Spur, UP — HAM, Bharatmala (Pkg-I)"],
-        ["Sanction Letter", "AXISB/LC/North/2022-23/2133 dated 26-08-2022; cash-flow waterfall at clause 20 (p.33-34)"],
-        ["Escrow Agreement", "e-stamp 27-09-2022; deposits cl. 2.3(A)(a)-(g); Order of Priority cl. 2.3(B)(a)-(m)"],
-        ["Annuity structure", "60% of BPC in 30 biannual instalments over 15 years from 180th day of COD; 40% construction grant in 10 x 4% instalments; termination payment 65% of annuity (Rs. 610.22 cr)"],
-        ["Note", "Agreement PDF is misnamed 'Kallagam Meensuruti' — content verified as the KLEPL–Axis Bank agreement"],
-    ], widths=[1.6, 5.4])
+    deal_rows = []
+    for label, key in [("Borrower", "borrower"), ("Sponsor", "sponsor"), ("Lender", "lender"),
+                       ("Authority", "authority"), ("Facility", "facility"),
+                       ("Facility Amount", "facility_amount"), ("Project", "project"),
+                       ("Concession Agreement Signed", "concession_agreement_signed")]:
+        val = deal_info.get(key)
+        if val:
+            deal_rows.append([label, val])
+    if extract.get("annuity_terms", {}).get("structure"):
+        deal_rows.append(["Annuity structure", extract["annuity_terms"]["structure"]])
+    if not deal_rows:
+        deal_rows.append(["Note", "No deal-level fields were extracted from the source documents — verify manually"])
+    _table(doc, ["Item", "Detail"], deal_rows, widths=[1.6, 5.4])
 
     # ---------------- 3. CATRA summary ----------------
     _h(doc, "3. CATRA Classification Framework (generated)")
@@ -152,24 +158,27 @@ def build_final_analysis(extract, reserve_checks, out_path="output/Final_Analysi
     # ---------------- 4. TRA summary ----------------
     _h(doc, "4. TRA Analysis (from Sanction Note / CAM Projected P&L)")
     pnl = extract["projected_pnl"]
-    doc.add_paragraph(
-        "Projected inflows are entirely annuity-linked (TPC annuity, interest on annuity at reducing balance, and "
-        "O&M receipts paid with each instalment). Projected outflows are O&M, MMR provisioning, facility interest "
-        "and scheduled principal. Full FY26–FY35 detail, the CATRA-mapped cashflow view and the semi-annual profile "
-        "are in TRA_Analysis.xlsx."
-    )
-    fy_show = ["FY26", "FY27", "FY30", "FY33", "FY35"]
-    idx = [pnl["fye"].index(f) for f in fy_show]
     bs = extract["projected_balance_sheet"]
-    _table(doc, ["Rs. crore"] + fy_show, [
-        ["Total income"] + [pnl["income_total"][i] for i in idx],
-        ["EBITDA"] + [pnl["ebitda"][i] for i in idx],
-        ["Interest (facility)"] + [pnl["interest"][i] for i in idx],
-        ["Principal (CMLTD)"] + [bs["cmltd"][i] for i in idx],
-        ["PAT"] + [pnl["pat"][i] for i in idx],
-        ["DSRA fund"] + [bs["dsra_fund"][i] for i in idx],
-        ["WCR fund"] + [bs["working_capital_reserve"][i] for i in idx],
-    ], widths=[1.8, 1.04, 1.04, 1.04, 1.04, 1.04])
+    if not pnl.get("fye"):
+        doc.add_paragraph("No projected P&L was extracted from the Sanction Note / CAM for this deal — "
+                          "this section will populate once that data is added (see notes in section 6).")
+    else:
+        doc.add_paragraph(
+            "Summary of the projected cashflow and reserve position by financial year. Full detail, the "
+            "CATRA-mapped cashflow view and the semi-annual profile are in TRA_Analysis.xlsx."
+        )
+        from escrow_agent.profile_normalize import representative_years
+        fy_show = representative_years(pnl["fye"], count=min(5, len(pnl["fye"])))
+        idx = [pnl["fye"].index(f) for f in fy_show]
+        _table(doc, ["Rs. crore"] + fy_show, [
+            ["Total income"] + [pnl["income_total"][i] for i in idx],
+            ["EBITDA"] + [pnl["ebitda"][i] for i in idx],
+            ["Interest (facility)"] + [pnl["interest"][i] for i in idx],
+            ["Principal (CMLTD)"] + [bs["cmltd"][i] for i in idx],
+            ["PAT"] + [pnl["pat"][i] for i in idx],
+            ["DSRA fund"] + [bs["dsra_fund"][i] for i in idx],
+            ["WCR fund"] + [bs["working_capital_reserve"][i] for i in idx],
+        ], widths=[1.8] + [1.04] * len(fy_show))
 
     # ---------------- 5. Clause cross-check ----------------
     _h(doc, "5. Cross-Check Against Escrow Agreement Clauses")
@@ -192,20 +201,20 @@ def build_final_analysis(extract, reserve_checks, out_path="output/Final_Analysi
                          f"{len(marg)} year(s) within proxy tolerance (worst {worst['fy']}: gap {worst['gap']}). {worst['note']}"])
         else:
             rows.append([label, "COMPLIANT", "Projected fund meets requirement in all applicable years"])
-    rows += [
-        ["Order of Priority routing (2.3(B) chapeau; CV6)", "PENDING ACTUALS",
-         "Requires the escrow bank statement: every withdrawal must route via the Sub-Accounts in priority order on Monthly Cash Transfer Dates"],
-        ["Annuity deposit within 1 business day (2.3(A)(c); CV5)", "PENDING ACTUALS",
-         "Requires statement credit dates vs NHAI annuity payment dates"],
-        ["50% surplus prepayment on each annuity (Sanction; CV4)", "PENDING ACTUALS",
-         "Requires actual surplus computation per annuity cycle and prepayment evidence"],
-        ["Bonus 100% to prepayment only if DSRA & MMR created (CV8)", "PENDING ACTUALS",
-         "Conditional; check at bonus receipt"],
-        ["Shortfall priority on Debt Service (2.11(iii); CV7)", "PENDING ACTUALS",
-         "Applies only if a debt-service shortfall event occurs"],
-        ["Subordinate Debt sub-account (2.3(B)(h))", "ATTENTION",
-         "Present in Agreement, absent from Sanction cl.20 waterfall — confirm treatment with lender before classifying any sub-debt payment"],
-    ]
+    handled_ids = {"CV1", "CV2", "CV3"}   # covered above via reserve_checks (DSRA/WCR/MMRA)
+    other_covenants = [cv for cv in extract.get("covenants", []) if cv.get("id") not in handled_ids]
+    for cv in other_covenants:
+        rows.append([f"{cv.get('rule', 'Covenant')} ({cv.get('source', 'source not extracted')})",
+                     "PENDING ACTUALS",
+                     "Requires the escrow account bank statement to verify against actual transactions/dates."])
+    if not other_covenants:
+        rows.append(["Other covenants beyond reserve sizing", "NONE EXTRACTED",
+                     "No further covenants were extracted from the source documents beyond DSRA/WCR/MMRA sizing — "
+                     "review the Escrow Agreement and Sanction Letter manually for payment-routing, distribution, "
+                     "or prepayment conditions and add them to the deal profile."])
+    for d in extract.get("waterfall_divergences", []):
+        if d != "None identified.":
+            rows.append(["Waterfall divergence", "ATTENTION", d])
     t = _table(doc, ["Clause / Covenant", "Status", "Finding"], rows, widths=[2.3, 1.2, 3.5])
     _status_color(t, 1)
 
@@ -219,12 +228,20 @@ def build_final_analysis(extract, reserve_checks, out_path="output/Final_Analysi
 
     # ---------------- 7. Next inputs ----------------
     _h(doc, "7. Inputs Required to Move from Projected to Actuals Basis")
-    for item in [
-        "Escrow account bank statement (xlsx/csv/pdf) — enables classification against the generated CATRA, waterfall-order validation, and actual-vs-TRA variance",
-        "Supplementary Escrow Agreement — referenced by the Sanction Letter for the surplus waterfall; needed to finalise CV4 mechanics",
-        "COD date / annuity payment schedule as invoiced — to pin the semi-annual TRA profile to actual instalment dates",
-        "Confirmation of WCR sizing interpretation (6 months interest vs CAM base-case level) and of Subordinate Debt treatment",
-    ]:
+    generic_items = [
+        "Escrow account bank statement (xlsx/csv/pdf) — enables classification against the generated CATRA, "
+        "waterfall-order validation, and actual-vs-TRA variance",
+        "COD date / annuity or revenue payment schedule as invoiced — to pin the TRA profile to actual dates",
+    ]
+    if other_covenants:
+        generic_items.append("Confirmation from the lender on the covenants listed as PENDING ACTUALS above")
+    for d in extract.get("waterfall_divergences", []):
+        if d != "None identified.":
+            generic_items.append(f"Resolution of: {d}")
+    if not pnl.get("fye"):
+        generic_items.append("Projected P&L / Balance Sheet from the Sanction Note or CAM — none was extracted; "
+                             "TRA and reserve-adequacy checks are placeholders until this is added")
+    for item in generic_items:
         doc.add_paragraph(item, style="List Bullet")
 
     doc.save(out_path)

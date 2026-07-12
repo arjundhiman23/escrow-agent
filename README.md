@@ -191,3 +191,29 @@ Templates are stored in the same backend as everything else (S3 if `S3_BUCKET` i
 ## Partial-Year Runs (added)
 
 The pipeline now accepts 1-4 quarterly statements per run — you don't have to wait for the full year. Submit Q1 as soon as it's available; the reports scope themselves to the quarters provided (CATRA/TRA templates leave the remaining quarter columns blank, and the Final Analysis notes it's a partial-year run). Re-run later with the additional quarters once available.
+
+## Deals (added)
+
+The console is now organized by **Deal** rather than a flat run list. Each deal keeps its own:
+
+- **Source documents** — Sanction Letter, Sanction Note / Credit Approval Memo, Escrow Agreement (PDF, uploaded per deal)
+- **CATRA/TRA profile** — AI-extracted draft (waterfall Order of Priority, permitted deposits, covenants, projected P&L/Balance Sheet), which you review and edit before confirming. Extraction uses Claude's vision on rendered page images (via PyMuPDF, no poppler/tesseract system dependency) — works on scanned or native-text PDFs identically, one call per document, merged into a single profile.
+- **Bank output templates** (CATRA/TRA), saved once and reused by every run for that deal
+- **Quarterly runs**, scoped under the deal, each producing CATRA (ATSL) / TRA / Final Analysis
+
+### Deal lifecycle
+`new` → upload documents → `extracting` (background AI call) → `review` (draft profile ready to edit) → `confirm` → `ready` (usable by quarterly runs). If `ANTHROPIC_API_KEY` isn't set, an empty profile is created immediately so you can fill it in manually — nothing blocks on AI being configured.
+
+The confirmed profile's covenants also feed the quarterly actuals Final Analysis (deal name, account, and any covenants beyond DSRA/WCR/MMR sizing appear as deal-specific "PENDING ACTUALS" checks) — this replaces what was previously hardcoded to the Kanpur Lucknow deal; the report builders are now fully deal-agnostic.
+
+### New API surface
+- `POST/GET/DELETE /api/deals`, `GET /api/deals/{id}`
+- `POST /api/deals/{id}/extract` (upload 1-3 documents, triggers background AI extraction)
+- `PUT /api/deals/{id}/profile` (manual edit), `POST /api/deals/{id}/confirm`
+- `GET /api/deals/{id}/documents/{kind}` (view uploaded PDF)
+- `GET/POST /api/deals/{id}/templates`
+- `POST/GET /api/deals/{id}/runs`, `GET/POST /api/deals/{id}/runs/{run_id}[/download/{file}|/rerun]`, `DELETE`
+- `GET /api/usage` — now aggregates both quarterly AI-assist and deal-extraction cost across all deals
+
+### New env var (optional)
+`AI_MODEL_EXTRACTION` (default `claude-sonnet-5`) — model used for deal-document extraction, separate from `AI_MODEL_CLASSIFICATION` (Haiku) used for quarterly transaction review.

@@ -121,11 +121,52 @@ def get_default_template(st, kind):
     return meta[kind]["filename"], st.get_bytes(TEMPLATE_KEYS[kind])
 
 
-# ---- run meta helpers ----
-def read_meta(st, run_id):
-    return json.loads(st.get_bytes(f"runs/{run_id}/meta.json").decode())
+# ---- deal helpers (each deal owns its documents, extracted profile, templates, runs) ----
+def read_deal(st, deal_id):
+    return json.loads(st.get_bytes(f"deals/{deal_id}/meta.json").decode())
 
 
-def write_meta(st, run_id, meta):
+def write_deal(st, deal_id, meta):
     with _LOCK:
-        st.put_bytes(f"runs/{run_id}/meta.json", json.dumps(meta, default=str).encode())
+        st.put_bytes(f"deals/{deal_id}/meta.json", json.dumps(meta, default=str).encode())
+
+
+def list_deals(st):
+    return st.list_dirs("deals")
+
+
+def get_deal_template_meta(st, deal_id):
+    try:
+        return json.loads(st.get_bytes(f"deals/{deal_id}/templates/meta.json").decode())
+    except Exception:
+        return {}
+
+
+def set_deal_default_template(st, deal_id, kind, filename, data: bytes):
+    st.put_bytes(f"deals/{deal_id}/templates/{kind}_template.xlsx", data)
+    meta = get_deal_template_meta(st, deal_id)
+    meta[kind] = {"filename": filename, "uploaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    st.put_bytes(f"deals/{deal_id}/templates/meta.json", json.dumps(meta).encode())
+    return meta[kind]
+
+
+def get_deal_default_template(st, deal_id, kind):
+    meta = get_deal_template_meta(st, deal_id)
+    key = f"deals/{deal_id}/templates/{kind}_template.xlsx"
+    if kind not in meta or not st.exists(key):
+        return None, None
+    return meta[kind]["filename"], st.get_bytes(key)
+
+
+# ---- run meta helpers (runs now live under deals/{deal_id}/runs/{run_id}) ----
+def read_run(st, deal_id, run_id):
+    return json.loads(st.get_bytes(f"deals/{deal_id}/runs/{run_id}/meta.json").decode())
+
+
+def write_run(st, deal_id, run_id, meta):
+    with _LOCK:
+        st.put_bytes(f"deals/{deal_id}/runs/{run_id}/meta.json", json.dumps(meta, default=str).encode())
+
+
+def list_runs(st, deal_id):
+    return st.list_dirs(f"deals/{deal_id}/runs")

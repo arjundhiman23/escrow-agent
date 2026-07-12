@@ -197,7 +197,9 @@ def _color_status(t, col):
             for r in p.runs: r.font.color.rgb = color; r.font.bold = True
 
 
-def build_final_analysis_actuals(summary, txns, recon, out_path):
+def build_final_analysis_actuals(summary, txns, recon, out_path, deal_name="Borrower not specified",
+                                 account="", fy="", sponsor_note="", deal_covenants=None):
+    deal_covenants = deal_covenants or []
     qs = [q for q in QUARTERS if q in summary]
     qs_label = f"{qs[0]}\u2013{qs[-1]}" if len(qs) > 1 else qs[0]
     doc = Document()
@@ -205,10 +207,11 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
     doc.styles["Normal"].font.size = Pt(10)
 
     title = doc.add_paragraph(); title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = title.add_run("FINAL ANALYSIS — ESCROW (CATRA) ACCOUNT, FY 2024-25\nKanpur Lucknow Expressway Private Limited")
+    r = title.add_run(f"FINAL ANALYSIS — ESCROW (CATRA) ACCOUNT{', ' + fy if fy else ''}\n{deal_name}")
     r.font.size = Pt(16); r.font.bold = True; r.font.color.rgb = DARK
     sub = doc.add_paragraph(); sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = sub.add_run(f"Actuals basis — main CATRA account 922020065877321, {qs_label} FY2024-25 statement(s) — {date.today().strftime('%d-%m-%Y')}")
+    acct_txt = f"main CATRA account {account}, " if account else ""
+    r = sub.add_run(f"Actuals basis — {acct_txt}{qs_label}{' ' + fy if fy else ''} statement(s) — {date.today().strftime('%d-%m-%Y')}")
     r.font.size = Pt(9); r.font.italic = True
     if len(qs) < 4:
         note = doc.add_paragraph(); note.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -225,30 +228,36 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
                    "COMPLIANT" if bal_ok and chain_ok else "OVERBREACH",
                    "Opening + credits − debits = closing for each quarter; each closing carries to next opening; balance never negative"])
     surplus = sum(summary[q]["debits"]["Surplus distribution to Borrower"] for q in qs)
-    checks.append(["No Restricted Payments during construction (Agreement 2.3(B)(m)(ii))",
+    checks.append(["No Restricted Payments / distributions to borrower observed",
                    "COMPLIANT" if surplus == 0 else "OVERBREACH",
-                   "Surplus distribution to Borrower = 0 in all four quarters"])
+                   f"Surplus distribution to Borrower = 0 across {qs_label}" if surplus == 0 else
+                   f"Surplus distribution to Borrower = Rs. {surplus/CR:.2f} cr — confirm this is permitted at this stage of the deal (check waterfall/distribution conditions)"])
     stat_ok = all(summary[q]["debits"]["Statutory Payments"] > 0 for q in qs)
-    checks.append(["Statutory dues serviced (waterfall priority 1)",
+    checks.append(["Statutory dues serviced (top waterfall priority)",
                    "COMPLIANT" if stat_ok else "UNDERBREACH",
                    "Statutory payments made every quarter (Rs. " +
                    ", ".join(f"{summary[q]['debits']['Statutory Payments']/CR:.2f}" for q in qs) + " cr)"])
     ds_ok = all(summary[q]["debits"]["Debt servicing"] > 0 for q in qs)
-    checks.append(["Debt servicing maintained (waterfall priority 6-7)",
+    checks.append(["Debt servicing maintained",
                    "COMPLIANT" if ds_ok else "UNDERBREACH",
                    "Debt servicing paid every quarter (Rs. " +
                    ", ".join(f"{summary[q]['debits']['Debt servicing']/CR:.2f}" for q in qs) + " cr)"])
-    checks.append(["Escrow routing of sponsor/promoter monies (2.3(A))", "COMPLIANT",
-                   "PNC Infratech / PNC Infra Holdings infusions and loan disbursements visibly credited to the escrow account"])
+    checks.append(["Escrow routing of sponsor/promoter monies", "COMPLIANT",
+                   sponsor_note or "Sponsor/promoter infusions and loan disbursements visibly credited to the escrow account"])
     pi_out = sum(summary[q]["debits"]["Permitted Investments"] for q in qs)
     pi_in = sum(summary[q]["credits"]["From Redemption of Investments"] for q in qs)
-    checks.append(["Permitted Investments round-trip via escrow (Sanction: redemption proceeds to escrow)",
+    checks.append(["Permitted Investments round-trip via escrow",
                    "COMPLIANT",
                    f"Placements Rs. {pi_out/CR:.2f} cr; redemption proceeds Rs. {pi_in/CR:.2f} cr returned to the account"])
-    checks.append(["Reserve creation (WCR / DSRA / MMRA — CV1-CV3)", "N-A (pre-DOCC)",
-                   "Reserve creations = 0 all quarters. DOCC not achieved in FY25 (DOCC Detail blank in bank format); reserves fall due at/around COD — carried as WATCH item"])
-    checks.append(["Actual vs Sanction Note projections", "N-A",
-                   "CAM projections begin FY26 (post-COD); the bank format itself records 'Estimate Not Available in Note/CAM' for FY25 — variance not computable for this FY"])
+    reserve_total = sum(summary[q]["debits"]["Reserve creations"] for q in qs)
+    checks.append(["Reserve creation (WCR / DSRA / MMRA)",
+                   "COMPLIANT" if reserve_total > 0 else "WATCH",
+                   (f"Reserve creations totalling Rs. {reserve_total/CR:.2f} cr observed across {qs_label}" if reserve_total > 0 else
+                    f"Reserve creations = 0 across {qs_label} — if the deal has not yet reached COD/DOCC this is expected; "
+                    "if it has, verify DSRA/WCR/MMR funding obligations against the deal's covenants")])
+    checks.append(["Actual vs Sanction Note / CAM projections", "N-A",
+                   "Requires the deal's projected P&L from the Sanction Note/CAM (see the projected-basis Final Analysis) "
+                   "to compute variance — not repeated here"])
 
     over = [c for c in checks if c[1] == "OVERBREACH"]
     under = [c for c in checks if c[1] == "UNDERBREACH"]
@@ -257,19 +266,23 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
 
     _h(doc, "1. Verdict")
     p = doc.add_paragraph()
-    p.add_run("Overall account status for FY 2024-25 (actuals): ").font.size = Pt(11)
+    p.add_run(f"Overall account status{' for ' + fy if fy else ''} (actuals): ").font.size = Pt(11)
     vr = p.add_run(verdict); vr.font.size = Pt(13); vr.font.bold = True; vr.font.color.rgb = vcol
+    watch = [c for c in checks if c[1] == "WATCH"]
+    watch_txt = (" Reserve obligations (WCR/DSRA/MMRA) show as a watch item — confirm whether this deal has "
+                "reached the funding trigger (e.g. COD/DOCC) yet." if watch else "")
     doc.add_paragraph(
-        "The account is neither overbreach (no utilisation above permitted heads, no payment out of the Order of "
-        "Priority detected, no restricted payment made) nor underbreach (no funding obligation currently due is "
-        "unfunded) on the four quarters analysed. Reserve obligations (WCR/DSRA/MMRA) are not yet due because DOCC "
-        "was not achieved during the year — these are the principal watch items for the COD quarter, alongside the "
-        "WCR sizing question flagged in the projected-basis analysis."
+        f"The account shows neither overbreach (no utilisation above permitted heads, no payment out of the "
+        f"Order of Priority detected, no unexplained restricted payment) nor underbreach (no funding obligation "
+        f"currently due is unfunded) on {qs_label}.{watch_txt}"
+        if verdict == "COMPLIANT" else
+        f"The account shows a {verdict} on {qs_label} — see the compliance checks below for the specific item(s) "
+        f"driving this and the quarter(s) affected."
     )
 
     _h(doc, "2. Classification Validation")
     doc.add_paragraph(
-        f"{recon['n_txns']} main-account transactions across Q1–Q4 were classified against the ATSL categories. "
+        f"{recon['n_txns']} main-account transactions across {qs_label} were classified against the ATSL categories. "
         f"All {recon['n_cells']} quarter-category totals reconcile exactly (to the paisa) with the bank's own "
         f"ATSL analysis, and all eight opening/closing balances tie out — measured accuracy on this labelled set: "
         f"{recon['accuracy']}. The BRD acceptance criterion of ≥90% classification accuracy is met on this data. "
@@ -308,27 +321,21 @@ def build_final_analysis_actuals(summary, txns, recon, out_path):
                  f"{t_.amount:,.2f}", t_.narration[:60], (t_.conflict or t_.basis)]
                 for t_ in obs],
                widths=[0.5, 0.9, 0.5, 1.2, 2.2, 1.7])
-    doc.add_paragraph(
-        "The Q3 pair — O&M debit Rs. 7,57,20,000 on 21-10-2024 and same-reference credit Rs. 7,57,08,970 — is a "
-        "payment reversal/refund (net cost Rs. 11,030). Per the bank's stated convention the credit sits under "
-        "Other Revenue; functionally it is a refund and is disclosed here for transparency."
-    )
-    doc.add_paragraph(
-        "Two figures in the bank's sample TRA Sheet2 differ from values recomputed from the bank's own quarterly "
-        "totals: 'Other O&M' Q3 reads 154.39 cr in the sample but Rs. 1,54,30,40,000 / 10^7 = 154.30 cr, and Q4 "
-        "reads 21.15 (truncated) versus 21.16 (rounded) from Rs. 21,15,80,000. This report carries the recomputed "
-        "values. Separately, the Axis-side CATRA sheet's Q3 'Total Inflows' (1,49,26,54,777) omits the Q3 term "
-        "loan disbursement of Rs. 40,68,00,000 that its own sub-lines include; the ATSL sheet's formula-based "
-        "total is correct."
-    )
+    else:
+        doc.add_paragraph("No transactions were flagged for review or showed a conflict with the bank's own remarks.")
 
-    _h(doc, "6. Watch Items for FY 2025-26")
-    for item in [
-        "Reserve creation at COD: one-time opening DSRA by Promoter on/before COD (Agreement 2.3(B)(j)); WCR sized at 6 months interest (2.3(B)(i)) — projected-basis analysis showed the CAM base case carries materially less; confirm sizing with lender",
-        "On DOCC achievement: inflow re-labelling per bank note (*) — receipts read as Revenue instead of Proceeds from Equity; annuity deposit timeliness check (2.3(A)(c)) becomes active",
-        "50% surplus prepayment on each annuity (Sanction cl.20) and Cash Sweep test dates become active post-COD",
-        "CAM FY26 projections become the TRA comparison base — variance analysis switches on automatically",
-    ]:
+    _h(doc, "6. Watch Items")
+    watch_items = []
+    if reserve_total == 0:
+        watch_items.append("Reserve creation (WCR/DSRA/MMR) has not yet begun — if this deal is approaching COD/DOCC, "
+                           "confirm the reserve funding triggers and sizing against the deal's covenants before the next run.")
+    if deal_covenants:
+        watch_items.append(f"{len(deal_covenants)} covenant(s) from the deal profile are not yet verifiable from "
+                           "the bank statement alone (see section 4 in the projected-basis Final Analysis) — "
+                           "confirm these become active once the relevant trigger event occurs.")
+    watch_items.append("Once the deal's projected P&L/Balance Sheet is available (Sanction Note/CAM), actual-vs-"
+                       "projection variance can be computed alongside these actuals-only checks.")
+    for item in watch_items:
         doc.add_paragraph(item, style="List Bullet")
 
     doc.save(out_path)

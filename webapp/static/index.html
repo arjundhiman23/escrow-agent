@@ -15,46 +15,80 @@
 *{box-sizing:border-box;margin:0}
 body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh}
 a{color:var(--escrow)}
-.rail{position:fixed;inset:0 auto 0 0;width:252px;background:var(--escrow-deep);color:#DCE7F2;padding:28px 22px;display:flex;flex-direction:column;gap:18px}
-.brand{font-weight:700;font-size:19px;letter-spacing:.2px;color:#fff;line-height:1.25}
-.brand small{display:block;font-weight:500;font-size:11.5px;color:#9FB8CE;letter-spacing:.8px;text-transform:uppercase;margin-top:6px}
-.rail .acct{font-family:var(--mono);font-size:11px;color:#8FA9C0;border-top:1px solid rgba(255,255,255,.14);padding-top:14px;line-height:1.7}
-.newrun-btn{background:#fff;color:var(--escrow-deep);border:0;border-radius:8px;padding:12px 14px;font:600 14px var(--sans);cursor:pointer}
-.newrun-btn:hover{background:#E9F1F8}
-main{margin-left:252px;padding:34px 40px 60px;max-width:1160px}
+.rail{position:fixed;inset:0 auto 0 0;width:270px;background:var(--escrow-deep);color:#DCE7F2;padding:26px 18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.brand{font-weight:700;font-size:18px;letter-spacing:.2px;color:#fff;line-height:1.25;padding:0 4px}
+.brand small{display:block;font-weight:500;font-size:11px;color:#9FB8CE;letter-spacing:.8px;text-transform:uppercase;margin-top:5px}
+.newdeal-btn{background:#fff;color:var(--escrow-deep);border:0;border-radius:8px;padding:11px 14px;font:600 13.5px var(--sans);cursor:pointer}
+.newdeal-btn:hover{background:#E9F1F8}
+.deal-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.deal-item{background:rgba(255,255,255,.05);border:1px solid transparent;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .12s}
+.deal-item:hover{background:rgba(255,255,255,.1)}
+.deal-item.active{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25)}
+.deal-item .dname{font-size:13.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal-item .dmeta{font-size:10.5px;color:#9FB8CE;margin-top:3px;display:flex;justify-content:space-between;align-items:center}
+.dstatus{font:600 9.5px var(--sans);letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;border-radius:999px}
+.dstatus.new{background:#3A4F63;color:#D8E5EF}
+.dstatus.extracting{background:#5A4A1F;color:#FFE7A8}
+.dstatus.review{background:#5A4A1F;color:#FFE7A8}
+.dstatus.extraction_failed{background:#5A2323;color:#FFC7C0}
+.dstatus.ready{background:#1D4A34;color:#B9EBD1}
+.rail-empty{font-size:12px;color:#8FA9C0;padding:8px 4px;line-height:1.6}
+main{margin-left:270px;padding:34px 40px 60px;max-width:1180px}
 h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .sub{color:var(--steel);font-size:13.5px;margin-bottom:26px}
-/* run cards */
-.run{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
-.run-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.run-deal{font-weight:600;font-size:15.5px}
-.run-id{font-family:var(--mono);font-size:11px;color:var(--steel)}
-.badge{margin-left:auto;font:600 11.5px var(--sans);letter-spacing:.6px;padding:4px 10px;border-radius:999px;text-transform:uppercase}
+.section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+.section h2{font-size:14.5px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.section .desc{font-size:12.5px;color:var(--steel);margin-bottom:14px}
+.deal-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.deal-header h1{margin-bottom:0}
+.badge{font:600 11px var(--sans);letter-spacing:.5px;padding:4px 11px;border-radius:999px;text-transform:uppercase}
+.badge.new{background:#E4E9EE;color:var(--steel)}
+.badge.extracting,.badge.review{background:#FFF4D6;color:var(--amber)}
+.badge.extraction_failed{background:#FBEAE7;color:var(--breach)}
+.badge.ready{background:#E5F3EC;color:var(--ok)}
 .badge.COMPLIANT{background:#E5F3EC;color:var(--ok)}
 .badge.OVERBREACH,.badge.UNDERBREACH,.badge.failed{background:#FBEAE7;color:var(--breach)}
 .badge.running,.badge.queued{background:#FFF4D6;color:var(--amber)}
-/* the waterfall strip — signature element */
-.waterfall{display:flex;gap:0;margin:14px 0 10px;height:34px}
-.wstep{flex:1;position:relative;background:#E3EAF1;border-right:2px solid var(--paper);display:flex;align-items:center;justify-content:center;font:500 10.5px var(--sans);letter-spacing:.6px;color:var(--steel)}
+.acct-tag{font-family:var(--mono);font-size:12px;color:var(--steel)}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px}
+.doc-slot{border:1.5px dashed var(--line);border-radius:9px;padding:14px;background:#FAFCFE;text-align:center}
+.doc-slot.has{border-style:solid;border-color:var(--escrow)}
+.doc-slot .dlabel{font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:8px}
+.doc-slot .fn{font-family:var(--mono);font-size:12px;color:var(--escrow);word-break:break-word}
+.doc-slot .none{font-size:12px;color:var(--steel);font-style:italic}
+.doc-slot input{display:none}
+.doc-slot label.pick{display:inline-block;margin-top:8px;border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer;background:#fff}
+.doc-slot label.pick:hover{border-color:var(--escrow);color:var(--escrow)}
+.doc-slot a.view{display:block;margin-top:6px;font-size:11px}
+.extract-log{background:#0F1D2B;color:#C4D6E6;font:11.5px/1.7 var(--mono);border-radius:8px;padding:12px 14px;max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-top:10px}
+.mini-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px}
+.mini-table th{background:var(--paper);text-align:left;padding:6px 9px;font:600 10.5px var(--sans);text-transform:uppercase;letter-spacing:.3px;color:var(--steel)}
+.mini-table td{padding:6px 9px;border-top:1px solid var(--paper)}
+.notes-list{font-size:12.5px;color:var(--steel);line-height:1.7;padding-left:18px;margin-bottom:10px}
+.json-editor{width:100%;min-height:280px;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:8px;padding:12px;line-height:1.5}
+.editor-toggle{font-size:12.5px;color:var(--escrow);cursor:pointer;text-decoration:underline;margin-bottom:10px;display:inline-block}
+.run{background:#FAFCFE;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.run-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.run-id{font-family:var(--mono);font-size:11px;color:var(--steel)}
+.run-top .badge{margin-left:auto}
+.waterfall{display:flex;gap:0;margin:14px 0 10px;height:32px}
+.wstep{flex:1;position:relative;background:#E3EAF1;border-right:2px solid var(--paper);display:flex;align-items:center;justify-content:center;font:500 10px var(--sans);letter-spacing:.5px;color:var(--steel)}
 .wstep:first-child{border-radius:7px 0 0 7px}.wstep:last-child{border-radius:0 7px 7px 0;border-right:0}
-.wstep:nth-child(1){margin-top:0}.wstep:nth-child(2){margin-top:2px}.wstep:nth-child(3){margin-top:4px}
-.wstep:nth-child(4){margin-top:6px}.wstep:nth-child(5){margin-top:8px}.wstep:nth-child(6){margin-top:10px}
 .wstep.done{background:var(--escrow);color:#fff}
 .wstep.active{background:var(--escrow);color:#fff;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.55}}
 @media (prefers-reduced-motion: reduce){.wstep.active{animation:none}}
-.run-stats{display:flex;gap:26px;flex-wrap:wrap;font-size:12.5px;color:var(--steel);margin-top:8px}
+.run-stats{display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:var(--steel);margin-top:8px}
 .run-stats b{font-family:var(--mono);color:var(--ink);font-weight:600}
 .run-actions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
 .btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:7px 12px;font:500 12.5px var(--sans);cursor:pointer;color:var(--ink)}
 .btn:hover{border-color:var(--escrow);color:var(--escrow)}
 .btn.primary{background:var(--escrow);border-color:var(--escrow);color:#fff}
+.btn.primary:hover{background:var(--escrow-deep);color:#fff}
 .btn.danger:hover{border-color:var(--breach);color:var(--breach)}
 .error-line{font-family:var(--mono);font-size:12px;color:var(--breach);margin-top:8px;word-break:break-word}
-/* detail log */
 .log{display:none;background:#0F1D2B;color:#C4D6E6;font:12px/1.7 var(--mono);border-radius:8px;padding:14px 16px;margin-top:12px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .log.open{display:block}
-/* new run drawer */
 .overlay{display:none;position:fixed;inset:0;background:rgba(18,32,46,.45);z-index:9}
 .overlay.open{display:block}
 .drawer{position:fixed;top:0;right:-520px;width:min(520px,100vw);height:100vh;background:#fff;z-index:10;box-shadow:-12px 0 40px rgba(18,32,46,.18);transition:right .25s ease;padding:30px 30px 40px;overflow:auto}
@@ -81,8 +115,6 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .run-cost b{color:var(--escrow)}
 .toggle-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);margin-top:2px}
 .toggle-row input{width:15px;height:15px}
-.tpl-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:18px}
-.tpl-card h3{font-size:13.5px;font-weight:700;margin-bottom:10px;color:var(--ink)}
 .tpl-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--paper)}
 .tpl-row:first-of-type{border-top:0}
 .tpl-name{flex:1;font-size:13px}
@@ -100,47 +132,44 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 </head>
 <body>
 <aside class="rail">
-  <div class="brand">Escrow Analyst<br>Console<small>ATSL · CATRA / TRA compliance</small></div>
-  <button class="newrun-btn" onclick="openDrawer()">+ New run</button>
-  <div style="flex:1"></div>
-  <div class="acct">Pipeline v2 · quarterly ATSL<br>Ingest → Classify → Validate →<br>CATRA → TRA → Final</div>
+  <div class="brand">Escrow Analyst<br>Console<small>Deals · CATRA / TRA compliance</small></div>
+  <button class="newdeal-btn" onclick="openNewDeal()">+ New deal</button>
+  <div class="deal-list" id="deal-list"></div>
 </aside>
 
-<main>
-  <h1>Runs</h1>
-  <div class="sub">Upload quarterly CATRA statements; the agent runs in the background and produces the CATRA (ATSL), TRA and Final Analysis reports.</div>
+<main id="main"></main>
 
-  <div class="tpl-card">
-    <h3>Bank output templates <span style="font-weight:400;color:var(--steel)">— saved once, reused by every run</span></h3>
-    <div id="tpl-rows">loading…</div>
+<div class="overlay" id="overlay-deal" onclick="closeNewDeal()"></div>
+<div class="drawer" id="drawer-deal">
+  <h2>New deal</h2>
+  <div class="field"><label>Deal / borrower name</label><input type="text" id="nd-name" placeholder="e.g. Kanpur Lucknow Expressway"></div>
+  <div class="field"><label>Main CATRA account number (optional)</label><input type="text" id="nd-account" class="mono" placeholder="e.g. 922020065877321"></div>
+  <div class="actions">
+    <button class="btn primary" id="nd-start" onclick="createDeal()">Create deal</button>
+    <button class="btn" onclick="closeNewDeal()">Cancel</button>
   </div>
+</div>
 
-  <div class="kpi-strip" id="kpis"></div>
-  <div id="runs"></div>
-</main>
-
-<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
-<div class="drawer" id="drawer">
-  <h2>New run</h2>
-  <div class="field"><label>Deal name</label><input type="text" id="deal" placeholder="Kanpur Lucknow Expressway" value="Kanpur Lucknow Expressway"></div>
-  <div class="field"><label>Financial year</label><input type="text" id="fy" placeholder="FY 2024-25" value="FY 2024-25"></div>
-  <div class="field"><label>Main CATRA account number</label><input type="text" id="acct" class="mono" value="922020065877321"></div>
-  <div class="field"><label>Quarterly statements (1–4 files, names must contain Q1…Q4)</label>
-    <label class="filebox" id="fb-st">Choose statement files…<input type="file" id="f-st" multiple accept=".xlsx"><div class="names" id="n-st"></div></label>
-    <div class="hint">Submit fewer than 4 if the rest of the year isn't available yet — re-run later with the remaining quarters added.</div>
+<div class="overlay" id="overlay-run" onclick="closeNewRun()"></div>
+<div class="drawer" id="drawer-run">
+  <h2>New quarterly run</h2>
+  <div class="field"><label>Financial year</label><input type="text" id="run-fy" placeholder="FY 2024-25" value="FY 2024-25"></div>
+  <div class="field"><label>Quarterly statements (1-4 files, names must contain Q1...Q4)</label>
+    <label class="filebox" id="fb-st">Choose statement files...<input type="file" id="f-st" multiple accept=".xlsx"><div class="names" id="n-st"></div></label>
+    <div class="hint">Submit fewer than 4 if the rest of the year isn't available yet - re-run later with the remaining quarters added.</div>
   </div>
   <div class="field">
-    <div class="hint" id="run-tpl-hint">This run will use the saved default CATRA and TRA templates (see Templates above).</div>
+    <div class="hint" id="run-tpl-hint"></div>
     <label class="filebox" id="fb-ct" style="margin-top:8px">Override CATRA template for this run only (optional)<input type="file" id="f-ct" accept=".xlsx"><div class="names" id="n-ct"></div></label>
     <label class="filebox" id="fb-tt" style="margin-top:8px">Override TRA template for this run only (optional)<input type="file" id="f-tt" accept=".xlsx"><div class="names" id="n-tt"></div></label>
   </div>
   <div class="field">
-    <label class="toggle-row"><input type="checkbox" id="ai-assist" checked> AI-assist review queue (Haiku model — only suggests categories for rows rules flag; never overrides rule-based totals)</label>
+    <label class="toggle-row"><input type="checkbox" id="ai-assist" checked> AI-assist review queue (Haiku model - only suggests categories for rows rules flag; never overrides rule-based totals)</label>
     <div class="hint" id="ai-hint"></div>
   </div>
   <div class="actions">
-    <button class="btn primary" id="startBtn" onclick="startRun()">Start run</button>
-    <button class="btn" onclick="closeDrawer()">Cancel</button>
+    <button class="btn primary" id="run-start" onclick="startRun()">Start run</button>
+    <button class="btn" onclick="closeNewRun()">Cancel</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -148,74 +177,289 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 <script>
 const $ = id => document.getElementById(id);
 let STAGES = ["INGEST","CLASSIFY","VALIDATE","CATRA","TRA","FINAL"];
+let DEALS = [];
+let CURRENT_DEAL = null;
+let CURRENT_TEMPLATES = {catra:null, tra:null};
 let openLogs = new Set();
-let TEMPLATES = {catra:null, tra:null};
+let profileEditorOpen = false;
+let pollTimer = null;
 
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function openNewDeal(){ $('overlay-deal').classList.add('open'); $('drawer-deal').classList.add('open'); }
+function closeNewDeal(){ $('overlay-deal').classList.remove('open'); $('drawer-deal').classList.remove('open'); }
+async function createDeal(){
+  const name = $('nd-name').value.trim();
+  if(!name) return toast('Enter a deal name');
+  $('nd-start').disabled = true;
+  try{
+    const fd = new FormData(); fd.append('name', name); fd.append('account', $('nd-account').value.trim());
+    const r = await fetch('/api/deals', {method:'POST', body:fd});
+    if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const d = await r.json();
+    closeNewDeal(); $('nd-name').value=''; $('nd-account').value='';
+    await loadDeals(); selectDeal(d.deal_id);
+    toast('Deal created - upload documents to extract its CATRA/TRA profile');
+  }catch(e){ toast('Could not create deal: '+e.message); }
+  $('nd-start').disabled = false;
+}
+
+async function loadDeals(){
+  try{
+    const r = await fetch('/api/deals'); const d = await r.json();
+    DEALS = d.deals;
+    const el = $('deal-list');
+    if(!DEALS.length){ el.innerHTML = '<div class="rail-empty">No deals yet. Create one to get started.</div>'; return; }
+    el.innerHTML = DEALS.map(dl => `
+      <div class="deal-item ${dl.deal_id===CURRENT_DEAL?'active':''}" onclick="selectDeal('${dl.deal_id}')">
+        <div class="dname">${esc(dl.name)}</div>
+        <div class="dmeta"><span>${dl.n_runs} run(s)</span><span class="dstatus ${dl.status}">${dl.status.replace('_',' ')}</span></div>
+      </div>`).join('');
+  }catch(e){}
+}
+
+function selectDeal(id){
+  CURRENT_DEAL = id;
+  loadDeals();
+  renderDeal();
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(()=>{ if(CURRENT_DEAL===id) renderDeal(true); }, 3000);
+}
+
+async function renderDeal(silent){
+  if(!CURRENT_DEAL){ renderHome(); return; }
+  let deal, templates, runsResp;
+  try{
+    [deal, templates, runsResp] = await Promise.all([
+      fetch(`/api/deals/${CURRENT_DEAL}`).then(r=>r.json()),
+      fetch(`/api/deals/${CURRENT_DEAL}/templates`).then(r=>r.json()),
+      fetch(`/api/deals/${CURRENT_DEAL}/runs`).then(r=>r.json()),
+    ]);
+  }catch(e){ return; }
+  CURRENT_TEMPLATES = templates;
+  STAGES = runsResp.stages || STAGES;
+
+  const main = $('main');
+  const scrollY = window.scrollY;
+  main.innerHTML = `
+    <div class="deal-header">
+      <h1>${esc(deal.name)}</h1>
+      <span class="badge ${deal.status}">${deal.status.replace('_',' ')}</span>
+      ${deal.account ? `<span class="acct-tag">a/c ${esc(deal.account)}</span>` : ''}
+    </div>
+    <div class="sub">Created ${fmtDate(deal.created_at)}</div>
+
+    <div class="section">
+      <h2>Deal documents &amp; CATRA/TRA extraction</h2>
+      <div class="desc">Upload the Sanction Letter, Sanction Note / Credit Approval Memo, and Escrow Agreement. The agent reads them (via AI, vision-based - works on scanned PDFs) and drafts a CATRA waterfall + TRA projection profile for you to review before it's used.</div>
+      <div class="doc-grid" id="doc-grid"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn primary" onclick="triggerExtract()">${Object.keys(deal.documents||{}).length ? 'Re-run extraction' : 'Upload &amp; extract'}</button>
+        ${deal.ai_usage && deal.ai_usage.calls ? `<span class="run-cost">Extraction cost: ${deal.ai_usage.calls} call(s) · ${deal.ai_usage.input_tokens.toLocaleString()} in / ${deal.ai_usage.output_tokens.toLocaleString()} out · <b>$${deal.ai_usage.cost_usd.toFixed(4)}</b></span>` : ''}
+      </div>
+      ${(deal.extraction_log||[]).length ? `<div class="extract-log">${esc(deal.extraction_log.join('\\n'))}</div>` : ''}
+    </div>
+
+    ${deal.profile ? renderProfileSection(deal) : ''}
+
+    <div class="section">
+      <h2>Bank output templates <span style="font-weight:400;color:var(--steel);font-size:12px">- saved once for this deal, reused by every run</span></h2>
+      <div id="tpl-rows"></div>
+    </div>
+
+    <div class="section">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin-bottom:0">Quarterly runs</h2>
+        <button class="btn primary" style="margin-left:auto" onclick="openNewRun()">+ New run</button>
+      </div>
+      <div class="desc">Upload quarterly CATRA statements; the agent classifies, validates, and produces the CATRA (ATSL), TRA and Final Analysis reports in the background.</div>
+      <div id="runs">${runsResp.runs.length ? runsResp.runs.map(runCard).join('') : '<div class="empty">No runs yet for this deal.</div>'}</div>
+    </div>
+  `;
+  renderDocGrid(deal.documents || {});
+  renderTemplateRows();
+  window.scrollTo(0, silent ? scrollY : 0);
+  runsResp.runs.forEach(r => { if(openLogs.has(r.run_id)) loadRunLog(r.run_id); });
+}
+
+function renderHome(){
+  $('main').innerHTML = `
+    <h1>Deals</h1>
+    <div class="sub">Each deal keeps its own Sanction Letter/Note, Escrow Agreement, extracted CATRA/TRA profile, bank templates, and quarterly runs.</div>
+    <div class="kpi-strip" id="kpis"></div>
+    <div class="empty">Select a deal on the left, or create a new one to get started.</div>
+  `;
+  loadUsage();
+}
+
+const DOC_LABELS = {escrow_agreement:'Escrow Agreement', sanction_letter:'Sanction Letter', sanction_note:'Sanction Note / CAM'};
+function renderDocGrid(documents){
+  const el = $('doc-grid'); if(!el) return;
+  el.innerHTML = Object.entries(DOC_LABELS).map(([kind,label])=>{
+    const fn = documents[kind];
+    return `<div class="doc-slot ${fn?'has':''}">
+      <div class="dlabel">${label}</div>
+      ${fn ? `<div class="fn">${esc(fn)}</div><a class="view" href="/api/deals/${CURRENT_DEAL}/documents/${kind}" target="_blank">View PDF</a>` : '<div class="none">Not uploaded</div>'}
+      <label class="pick">${fn?'Replace':'Choose file'}<input type="file" accept=".pdf" data-kind="${kind}" onchange="stageDoc(this)"></label>
+    </div>`;
+  }).join('');
+}
+let STAGED_DOCS = {};
+function stageDoc(input){
+  STAGED_DOCS[input.dataset.kind] = input.files[0];
+  toast(`${DOC_LABELS[input.dataset.kind]} staged - click "Upload & extract" to run.`);
+}
+async function triggerExtract(){
+  if(!Object.keys(STAGED_DOCS).length) return toast('Choose at least one document file first');
+  const fd = new FormData();
+  for(const [kind,file] of Object.entries(STAGED_DOCS)) fd.append(kind, file);
+  try{
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/extract`, {method:'POST', body:fd});
+    if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    STAGED_DOCS = {};
+    toast('Extraction started - this runs in the background');
+    renderDeal();
+  }catch(e){ toast('Could not start extraction: '+e.message); }
+}
+
+function renderProfileSection(deal){
+  const p = deal.profile;
+  const op = (p.order_of_priority||[]).slice().sort((a,b)=>(a.priority||99)-(b.priority||99));
+  const cv = p.covenants || [];
+  const pnl = p.projected_pnl || {};
+  const hasPnl = (pnl.fye||[]).length > 0;
+  return `<div class="section">
+    <h2>CATRA / TRA profile ${deal.status==='ready'?'<span class="badge ready" style="margin-left:6px">confirmed</span>':'<span class="badge review" style="margin-left:6px">draft - review before use</span>'}</h2>
+    <div class="desc">Edit anything below before confirming - this becomes the deal's waterfall, covenants, and projections used across all quarterly runs.</div>
+
+    <table class="mini-table"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+      ${Object.entries(p.deal||{}).map(([k,v])=>`<tr><td style="text-transform:capitalize">${esc(k.replace(/_/g,' '))}</td><td>${esc(v)}</td></tr>`).join('') || '<tr><td colspan="2" style="color:var(--steel)">No deal-level fields extracted yet</td></tr>'}
+    </tbody></table>
+
+    <div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Order of Priority (${op.length})</div>
+    <table class="mini-table"><thead><tr><th>#</th><th>Code</th><th>Name</th><th>Agreement ref</th></tr></thead><tbody>
+      ${op.length ? op.map(r=>`<tr><td>${r.priority??''}</td><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.agreement_item||'')}</td></tr>`).join('')
+                  : '<tr><td colspan="4" style="color:var(--steel)">None extracted yet</td></tr>'}
+    </tbody></table>
+
+    <div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Covenants (${cv.length})</div>
+    <table class="mini-table"><thead><tr><th>ID</th><th>Source</th><th>Rule</th></tr></thead><tbody>
+      ${cv.length ? cv.map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.source)}</td><td>${esc(r.rule)}</td></tr>`).join('')
+                  : '<tr><td colspan="3" style="color:var(--steel)">None extracted yet</td></tr>'}
+    </tbody></table>
+
+    <div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Projected P&amp;L</div>
+    <div class="desc" style="margin-bottom:10px">${hasPnl ? `${pnl.fye.length} financial year(s) extracted (${pnl.fye[0]}-${pnl.fye[pnl.fye.length-1]}).` : 'No projected P&amp;L extracted yet - TRA analysis will be empty until this is added.'}</div>
+
+    ${(p.notes||[]).length ? `<div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Notes from extraction</div><ul class="notes-list">${p.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+
+    <span class="editor-toggle" onclick="toggleProfileEditor()">Edit raw profile JSON</span>
+    <div id="profile-editor-wrap" style="display:none">
+      <textarea class="json-editor" id="profile-json">${esc(JSON.stringify(p, null, 2))}</textarea>
+      <div class="run-actions">
+        <button class="btn primary" onclick="saveProfile()">Save changes</button>
+      </div>
+    </div>
+
+    <div class="run-actions" style="margin-top:14px">
+      <button class="btn primary" onclick="confirmDeal()">${deal.status==='ready' ? 'Re-confirm profile' : 'Confirm & use this profile'}</button>
+    </div>
+  </div>`;
+}
+function toggleProfileEditor(){
+  profileEditorOpen = !profileEditorOpen;
+  $('profile-editor-wrap').style.display = profileEditorOpen ? 'block' : 'none';
+}
+async function saveProfile(){
+  let parsed;
+  try{ parsed = JSON.parse($('profile-json').value); }catch(e){ return toast('Invalid JSON: '+e.message); }
+  try{
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/profile`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(parsed)});
+    if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    toast('Profile saved'); renderDeal();
+  }catch(e){ toast('Could not save: '+e.message); }
+}
+async function confirmDeal(){
+  try{
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/confirm`, {method:'POST'});
+    if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    toast('Profile confirmed - deal is ready for quarterly runs'); renderDeal(); loadDeals();
+  }catch(e){ toast('Could not confirm: '+e.message); }
+}
 
 function tplRow(kind, label){
-  const t = TEMPLATES[kind];
+  const t = CURRENT_TEMPLATES[kind];
   const nameHtml = t
-    ? `<span class="fn">${t.filename}</span><span class="dt">saved ${fmtDate(t.uploaded_at)}</span>`
-    : `<span class="none">No default saved yet — upload one, or attach per-run in "+ New run"</span>`;
+    ? `<span class="fn">${esc(t.filename)}</span><span class="dt">saved ${fmtDate(t.uploaded_at)}</span>`
+    : `<span class="none">No default saved yet - upload one, or attach per-run in "+ New run"</span>`;
   return `<div class="tpl-row">
     <div class="tpl-name">${label}: ${nameHtml}</div>
     <label class="tpl-upload-label">${t?'Replace':'Upload'}<input type="file" accept=".xlsx" onchange="uploadTemplate('${kind}', this)"></label>
   </div>`;
 }
-async function loadTemplates(){
-  try{
-    const r = await fetch('/api/templates'); TEMPLATES = await r.json();
-    $('tpl-rows').innerHTML = tplRow('catra','CATRA template') + tplRow('tra','TRA template');
-    const hasBoth = TEMPLATES.catra && TEMPLATES.tra;
-    $('run-tpl-hint').textContent = hasBoth
-      ? 'This run will use the saved default CATRA and TRA templates (see Templates above).'
-      : 'No default template saved yet for at least one type — attach it below for this run, or save a default in Templates above first.';
-  }catch(e){}
+function renderTemplateRows(){
+  const el = $('tpl-rows'); if(!el) return;
+  el.innerHTML = tplRow('catra','CATRA template') + tplRow('tra','TRA template');
 }
 async function uploadTemplate(kind, input){
   const f = input.files[0]; if(!f) return;
   const fd = new FormData(); fd.append('kind',kind); fd.append('file',f);
   try{
-    const r = await fetch('/api/templates',{method:'POST',body:fd});
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/templates`,{method:'POST',body:fd});
     if(!r.ok) throw new Error((await r.json()).detail||r.statusText);
-    toast(`${kind.toUpperCase()} template saved as default`); loadTemplates();
+    toast(`${kind.toUpperCase()} template saved as default for this deal`);
+    const t = await fetch(`/api/deals/${CURRENT_DEAL}/templates`).then(r=>r.json());
+    CURRENT_TEMPLATES = t; renderTemplateRows();
   }catch(e){ toast('Could not save template: '+e.message); }
 }
 
-function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
-function openDrawer(){ $('overlay').classList.add('open'); $('drawer').classList.add('open'); loadTemplates(); }
-function closeDrawer(){ $('overlay').classList.remove('open'); $('drawer').classList.remove('open'); }
-
-for (const [f,n,box] of [['f-st','n-st','fb-st'],['f-ct','n-ct','fb-ct'],['f-tt','n-tt','fb-tt']]){
-  $(f).addEventListener('change', ()=> {
-    const files=[...$(f).files].map(x=>x.name);
-    $(n).innerHTML = files.join('<br>');
-    $(box).classList.toggle('has', files.length>0);
+function openNewRun(){
+  $('overlay-run').classList.add('open'); $('drawer-run').classList.add('open');
+  const hasBoth = CURRENT_TEMPLATES.catra && CURRENT_TEMPLATES.tra;
+  $('run-tpl-hint').textContent = hasBoth
+    ? 'This run will use the saved default CATRA and TRA templates for this deal.'
+    : 'No default template saved yet for at least one type - attach it below for this run, or save a default in Bank output templates above first.';
+  $('ai-hint').textContent = '';
+  fetch('/api/usage').then(r=>r.json()).then(u=>{
+    $('ai-hint').textContent = u.api_key_configured
+      ? 'ANTHROPIC_API_KEY is configured - AI-assist will run (Haiku model, only on rows rules flag for review).'
+      : 'ANTHROPIC_API_KEY is not set - this toggle has no effect until it is configured; runs stay rules-only at $0 token cost.';
   });
 }
-
+function closeNewRun(){ $('overlay-run').classList.remove('open'); $('drawer-run').classList.remove('open'); }
+for (const [f,n,box] of [['f-st','n-st','fb-st'],['f-ct','n-ct','fb-ct'],['f-tt','n-tt','fb-tt']]){
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const el = $(f); if(!el) return;
+    el.addEventListener('change', ()=> {
+      const files=[...el.files].map(x=>x.name);
+      $(n).innerHTML = files.join('<br>');
+      $(box).classList.toggle('has', files.length>0);
+    });
+  });
+}
 async function startRun(){
   const st=$('f-st').files, ct=$('f-ct').files, tt=$('f-tt').files;
-  if(!$('deal').value.trim() || !$('fy').value.trim()) return toast('Enter deal name and financial year');
-  if(st.length<1||st.length>4) return toast('Choose 1–4 statement files');
+  if(!$('run-fy').value.trim()) return toast('Enter a financial year');
+  if(st.length<1||st.length>4) return toast('Choose 1-4 statement files');
   const bad=[...st].filter(f=>!/Q[1-4]/i.test(f.name));
-  if(bad.length) return toast('Statement names must contain Q1…Q4: '+bad[0].name);
-  if(!ct.length && !(TEMPLATES.catra)) return toast('No CATRA template saved yet — upload one below, or save a default in Templates');
-  if(!tt.length && !(TEMPLATES.tra)) return toast('No TRA template saved yet — upload one below, or save a default in Templates');
+  if(bad.length) return toast('Statement names must contain Q1...Q4: '+bad[0].name);
+  if(!ct.length && !CURRENT_TEMPLATES.catra) return toast('No CATRA template saved yet for this deal - upload one below');
+  if(!tt.length && !CURRENT_TEMPLATES.tra) return toast('No TRA template saved yet for this deal - upload one below');
   const fd=new FormData();
-  fd.append('deal_name',$('deal').value); fd.append('fy',$('fy').value); fd.append('account',$('acct').value);
+  fd.append('fy',$('run-fy').value);
   fd.append('ai_assist', $('ai-assist').checked ? 'true' : 'false');
   [...st].forEach(f=>fd.append('statements',f));
   if(ct.length) fd.append('catra_template',ct[0]);
   if(tt.length) fd.append('tra_template',tt[0]);
-  $('startBtn').disabled=true; $('startBtn').textContent='Uploading…';
+  $('run-start').disabled=true; $('run-start').textContent='Uploading...';
   try{
-    const r=await fetch('/api/runs',{method:'POST',body:fd});
+    const r=await fetch(`/api/deals/${CURRENT_DEAL}/runs`,{method:'POST',body:fd});
     if(!r.ok) throw new Error((await r.json()).detail||r.statusText);
-    closeDrawer(); toast('Run started'); refresh();
+    closeNewRun(); toast('Run started'); renderDeal();
   }catch(e){ toast('Could not start run: '+e.message); }
-  $('startBtn').disabled=false; $('startBtn').textContent='Start run';
+  $('run-start').disabled=false; $('run-start').textContent='Start run';
 }
 
 function waterfall(run){
@@ -225,13 +469,11 @@ function waterfall(run){
     return `<div class="wstep ${cls}">${s}</div>`;
   }).join('')+'</div>';
 }
-
-function badge(run){
+function runBadge(run){
   const v = run.status==='completed' ? run.verdict : run.status;
   return `<span class="badge ${v}">${v||''}</span>`;
 }
-
-function statsLine(run){
+function runStats(run){
   if(!run.stats) return '';
   const s=run.stats;
   let html = `<div class="run-stats">
@@ -256,83 +498,59 @@ function statsLine(run){
   }
   return html;
 }
-
-function card(run){
+function runCard(run){
   const dl = (run.status==='completed') ? (run.outputs||[]).map(f =>
-    `<a class="btn" href="/api/runs/${run.run_id}/download/${encodeURIComponent(f)}">↓ ${f.replace(/_/g,' ').replace('.xlsx','').replace('.docx','')}</a>`).join('') : '';
-  const err = run.error?`<div class="error-line">${run.error}</div>`:'';
+    `<a class="btn" href="/api/deals/${CURRENT_DEAL}/runs/${run.run_id}/download/${encodeURIComponent(f)}">↓ ${f.replace(/_/g,' ').replace('.xlsx','').replace('.docx','')}</a>`).join('') : '';
+  const err = run.error?`<div class="error-line">${esc(run.error)}</div>`:'';
   const logOpen = openLogs.has(run.run_id)?'open':'';
   return `<div class="run" id="run-${run.run_id}">
     <div class="run-top">
-      <span class="run-deal">${run.deal_name} · ${run.fy}</span>
-      <span class="run-id">${run.run_id} · a/c ${run.account}</span>
-      ${badge(run)}
+      <span class="run-id">${run.fy} · ${run.run_id}</span>
+      ${runBadge(run)}
     </div>
     ${waterfall(run)}
-    ${statsLine(run)} ${err}
+    ${runStats(run)} ${err}
     <div class="run-actions">
       ${dl}
-      <button class="btn" onclick="toggleLog('${run.run_id}')">Log</button>
-      <button class="btn" onclick="rerun('${run.run_id}')">Re-run</button>
-      <button class="btn danger" onclick="del('${run.run_id}')">Delete</button>
+      <button class="btn" onclick="toggleRunLog('${run.run_id}')">Log</button>
+      <button class="btn" onclick="rerunRun('${run.run_id}')">Re-run</button>
+      <button class="btn danger" onclick="delRun('${run.run_id}')">Delete</button>
     </div>
-    <div class="log ${logOpen}" id="log-${run.run_id}">loading…</div>
+    <div class="log ${logOpen}" id="log-${run.run_id}">loading...</div>
   </div>`;
 }
-
-async function toggleLog(id){
+async function toggleRunLog(id){
   const el=$('log-'+id);
-  if(el.classList.toggle('open')){ openLogs.add(id); loadLog(id); } else openLogs.delete(id);
+  if(el.classList.toggle('open')){ openLogs.add(id); loadRunLog(id); } else openLogs.delete(id);
 }
-async function loadLog(id){
+async function loadRunLog(id){
   const el=$('log-'+id); if(!el||!el.classList.contains('open'))return;
-  try{ const r=await fetch('/api/runs/'+id); const m=await r.json(); el.textContent=(m.log||[]).join('\n')||'no log yet'; el.scrollTop=el.scrollHeight; }catch(e){}
+  try{ const r=await fetch(`/api/deals/${CURRENT_DEAL}/runs/${id}`); const m=await r.json(); el.textContent=(m.log||[]).join('\\n')||'no log yet'; el.scrollTop=el.scrollHeight; }catch(e){}
 }
-async function rerun(id){ await fetch(`/api/runs/${id}/rerun`,{method:'POST'}); toast('Re-run queued'); refresh(); }
-async function del(id){ if(!confirm('Delete this run and its files?'))return; await fetch(`/api/runs/${id}`,{method:'DELETE'}); refresh(); }
+async function rerunRun(id){ await fetch(`/api/deals/${CURRENT_DEAL}/runs/${id}/rerun`,{method:'POST'}); toast('Re-run queued'); renderDeal(); }
+async function delRun(id){ if(!confirm('Delete this run and its files?'))return; await fetch(`/api/deals/${CURRENT_DEAL}/runs/${id}`,{method:'DELETE'}); renderDeal(); }
 
 function renderKpis(u){
-  const el = $('kpis');
+  const el = $('kpis'); if(!el) return;
   if(!u.api_key_configured){
-    el.innerHTML = `<div class="kpi ai-off"><div class="label">AI-assist</div><div class="value">Not configured</div><div class="sub">Set ANTHROPIC_API_KEY to enable — running rules-only, $0 token cost</div></div>`;
+    el.innerHTML = `<div class="kpi ai-off"><div class="label">AI-assist &amp; extraction</div><div class="value">Not configured</div><div class="sub">Set ANTHROPIC_API_KEY to enable - document extraction and classification stay manual/rules-only, $0 token cost</div></div>`;
     return;
   }
   el.innerHTML = `
-    <div class="kpi ai-on"><div class="label">AI-assist</div><div class="value">Enabled</div><div class="sub">${u.runs_with_ai_assist} run(s) used it</div></div>
+    <div class="kpi ai-on"><div class="label">AI</div><div class="value">Enabled</div><div class="sub">${u.deals_with_extraction} deal(s) extracted · ${u.runs_with_ai_assist} run(s) used AI-assist</div></div>
     <div class="kpi"><div class="label">Tokens In</div><div class="value">${u.total_input_tokens.toLocaleString()}</div><div class="sub">${u.total_calls} API call(s)</div></div>
     <div class="kpi"><div class="label">Tokens Out</div><div class="value">${u.total_output_tokens.toLocaleString()}</div></div>
-    <div class="kpi"><div class="label">Total Cost</div><div class="value">$${u.total_cost_usd.toFixed(4)}</div><div class="sub">across all runs</div></div>`;
+    <div class="kpi"><div class="label">Total Cost</div><div class="value">$${u.total_cost_usd.toFixed(4)}</div><div class="sub">across all deals &amp; runs</div></div>`;
 }
 async function loadUsage(){
-  try{
-    const r = await fetch('/api/usage'); const u = await r.json();
-    renderKpis(u);
-    $('ai-hint').textContent = u.api_key_configured
-      ? 'ANTHROPIC_API_KEY is configured — AI-assist will run (Haiku model, only on rows rules flag for review).'
-      : 'ANTHROPIC_API_KEY is not set — this toggle has no effect until it is configured; runs stay rules-only at $0 token cost.';
-  }catch(e){}
+  try{ const r = await fetch('/api/usage'); renderKpis(await r.json()); }catch(e){}
 }
 
-let anyActive=false;
-async function refresh(){
-  try{
-    const r=await fetch('/api/runs'); const d=await r.json();
-    STAGES=d.stages||STAGES;
-    const el=$('runs');
-    if(!d.runs.length){ el.innerHTML='<div class="empty">No runs yet. Start one with “+ New run” — upload the quarterly statements and the two bank templates.</div>'; anyActive=false; }
-    else{
-      el.innerHTML=d.runs.map(card).join('');
-      anyActive=d.runs.some(x=>x.status==='running'||x.status==='queued');
-      openLogs.forEach(loadLog);
-    }
-  }catch(e){}
-  loadUsage();
-}
-refresh();
-loadTemplates();
-setInterval(()=>{ if(anyActive||openLogs.size) refresh(); }, 2000);
-setInterval(refresh, 15000);
-setInterval(loadTemplates, 20000);
+(async function init(){
+  await loadDeals();
+  if(DEALS.length) selectDeal(DEALS[0].deal_id); else renderHome();
+})();
+setInterval(loadDeals, 8000);
 </script>
 </body>
 </html>
