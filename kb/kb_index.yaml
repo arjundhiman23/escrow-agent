@@ -1,0 +1,66 @@
+# Knowledge Base index — Escrow Account Transaction Analyst Agent
+# Deal: Kanpur Lucknow Expressway Pvt. Ltd. (KLEPL) — Axis Bank RTL Rs. 779.75 crore
+# Each entry registers a source document, its extraction, and quality notes.
+
+deal:
+  borrower: Kanpur Lucknow Expressway Private Limited
+  sponsor: PNC Infratech Limited
+  lender: Axis Bank Limited (sole lender; also Escrow Bank and Lenders' Representative/Agent)
+  authority: NHAI
+  facility: Rupee Term Loan of Rs. 779.75 crore
+  project: >
+    Construction of Six Lane Upgradable to Eight Lane of Kanpur Lucknow Expressway
+    incl. Spur (Km 10+980 to 28+500), Uttar Pradesh — Hybrid Annuity Model,
+    Bharatmala Pariyojana (Package-I)
+  concession_agreement_signed: 2022-05-12
+
+documents:
+  - id: SANCTION
+    role: Sanction Letter
+    file: documents/Sanction_compressed.pdf
+    pages: 50
+    date: 2022-08-26
+    ref: AXISB/LC/North/2022-23/2133
+    extraction:
+      text: extracted/sanction_ocr.txt
+      method: tesseract OCR (200dpi, psm 4) — embedded text layer was low quality
+      quality: usable; key clause 20 (cash flow waterfall, p.33-34) verified against page image
+    key_sections:
+      cash_flow_waterfall: clause 20, pages 33-34
+      security_escrow: pages ~9-10 (Usage of Revenues / Escrow agreement condition)
+
+  - id: AGREEMENT
+    role: Escrow Agreement
+    file: documents/Kallagam Meensuruti Escrow Agreement Feb24.pdf
+    pages: 33
+    note: >
+      FILENAME MISMATCH — file is named "Kallagam Meensuruti" but the document is the
+      KLEPL <-> Axis Bank escrow agreement (e-stamp IN-DL93781842727935U, 27-Sep-2022;
+      First Party KANPUR LUCKNOW EXPRESSWAY PRIVATE LIMITED, Second Party AXIS BANK LTD).
+    extraction:
+      text: extracted/agreement_ocr.txt
+      method: tesseract OCR (scanned, no text layer)
+      quality: usable; clauses 2.3(A) deposits, 2.3(B) Order of Priority (a)-(m),
+        2.4-2.6, 2.11 shortfall priority verified by reading OCR output in sequence
+    key_sections:
+      deposits: clause 2.3(A) (a)-(g)
+      order_of_priority: clause 2.3(B) (a)-(m)
+      withdrawals: clause 2.6
+      shortfall_priority: clause 2.11(iii) items 1-4
+
+  - id: CAM
+    role: Sanction Note / Credit Approval Memo (source of P&L projections for TRA)
+    file: documents/Credit Approval Memo.pdf
+    pages: 41
+    ref: CAM591307220013
+    extraction:
+      text: extracted/cam_text.txt
+      method: pdftotext -layout (native text)
+      quality: >
+        good; Projected P&L and Balance Sheet columns FY26-FY35 complete,
+        FY36+ truncated at right page edge in the source print — marked TRUNCATED
+        in structured extract. Annuity schedule (30 biannual instalments) on p.11.
+    key_sections:
+      projected_pnl: page 7-8
+      projected_balance_sheet: page 8
+      annuity_schedule: page 11

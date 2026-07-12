@@ -1,0 +1,127 @@
+{
+  "deal_name": "DEMO \u2014 Solar SPV Escrow (Synthetic)",
+  "waterfall": [
+    {
+      "priority": 1,
+      "category_code": "STAT_PAY",
+      "description": "Statutory dues and taxes"
+    },
+    {
+      "priority": 2,
+      "category_code": "OM_EXP",
+      "description": "O&M and project construction payments"
+    },
+    {
+      "priority": 3,
+      "category_code": "DEBT_SERV",
+      "description": "Interest and principal to lenders"
+    },
+    {
+      "priority": 4,
+      "category_code": "RESERVE",
+      "description": "DSRA / reserve top-ups"
+    },
+    {
+      "priority": 5,
+      "category_code": "PERM_INV",
+      "description": "Permitted investments (FD/TD)"
+    },
+    {
+      "priority": 6,
+      "category_code": "INTERCO",
+      "description": "Inter-company transfers (capped)"
+    },
+    {
+      "priority": 7,
+      "category_code": "CO_TRF",
+      "description": "Own-account transfers"
+    },
+    {
+      "priority": 8,
+      "category_code": "SURPLUS_DIST",
+      "description": "Surplus distribution to borrower"
+    }
+  ],
+  "permitted_inflow_sources": [
+    "OTH_REV",
+    "PROC_TL",
+    "FD_REDEMPTION"
+  ],
+  "conditions": [
+    {
+      "id": "C1",
+      "type": "surplus_requires_prior",
+      "params": {
+        "required_code": "DEBT_SERV",
+        "target_code": "SURPLUS_DIST"
+      },
+      "description": "Surplus may be distributed only after debt servicing in the same monthly cycle."
+    },
+    {
+      "id": "C2",
+      "type": "category_cap_per_quarter",
+      "params": {
+        "category_code": "INTERCO",
+        "cap": 5000000
+      },
+      "description": "Inter-company transfers capped at INR 50 lakh per quarter."
+    },
+    {
+      "id": "C3",
+      "type": "manual",
+      "description": "Borrower to submit insurance policy renewals to the trustee annually."
+    }
+  ],
+  "projections": {
+    "Q1": {
+      "inflows": {
+        "OTH_REV": 27000000,
+        "FD_REDEMPTION": 0
+      },
+      "outflows": {
+        "DEBT_SERV": 14500000,
+        "STAT_PAY": 1800000,
+        "OM_EXP": 3600000,
+        "RESERVE": 3000000,
+        "PERM_INV": 5000000
+      }
+    },
+    "Q2": {
+      "inflows": {
+        "OTH_REV": 27000000,
+        "PROC_TL": 15000000,
+        "FD_REDEMPTION": 5100000
+      },
+      "outflows": {
+        "DEBT_SERV": 14500000,
+        "STAT_PAY": 1800000,
+        "OM_EXP": 3600000,
+        "RESERVE": 2000000,
+        "SURPLUS_DIST": 2000000
+      }
+    },
+    "Q3": {
+      "inflows": {
+        "OTH_REV": 27000000
+      },
+      "outflows": {
+        "DEBT_SERV": 14500000,
+        "STAT_PAY": 1800000,
+        "OM_EXP": 3600000,
+        "PERM_INV": 6000000,
+        "INTERCO": 5000000
+      }
+    },
+    "Q4": {
+      "inflows": {
+        "OTH_REV": 27000000
+      },
+      "outflows": {
+        "DEBT_SERV": 14500000,
+        "STAT_PAY": 1800000,
+        "OM_EXP": 3600000,
+        "SURPLUS_DIST": 1500000
+      }
+    }
+  }
+}

@@ -1,0 +1,183 @@
+# Escrow Account Transaction Analyst Agent
+
+AI-powered automation for escrow account transaction analysis, built per the
+BRD *"Escrow Account Transaction Analyst Agent"* (Axis Trustee Services
+Limited, v1.0). Ingests the main-escrow-account transaction extract, classifies
+transactions against the TRA/CATRA taxonomy, validates the sanction waterfall,
+computes quarter-wise aggregates and actual-vs-projected variances, and
+produces Excel + Word outputs for credit/compliance review.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+
+# Demo run on the bundled synthetic dataset:
+python run_agent.py \
+    --transactions sample_data/sample_transactions.xlsx \
+    --sanction-extract sample_data/sample_sanction_extract.json \
+    --output output/
+```
+
+Outputs (in `--output`):
+
+| File | Contents |
+|---|---|
+| `Escrow_Analysis_Workbook.xlsx` | Transactions · Quarter Summary · Variance Analysis · QoQ Movement · Exceptions Log · Review Queue · Audit Trail |
+| `Escrow_Analysis_Report.docx` | Management report: executive summary, quarter summary, waterfall compliance, variance analysis, consolidated exceptions summary, review queue |
+| `audit_log.txt` | Timestamped log of every processing step (BRD §7) |
+
+## Inputs
+
+1. **Transaction extract** (`--transactions`, .xlsx/.csv/.pdf) — main escrow
+   account only. Column names are mapped adaptively (Risk R-04); core fields
+   needed: date, narration, and either a Dr/Cr type + amount or separate
+   debit/credit columns. Header rows preceded by title rows are auto-detected.
+   Scanned PDFs need OCR first (Risk R-02) — the agent raises a clear error
+   rather than silently producing an empty result.
+
+2. **Sanction extract** (`--sanction-extract`, JSON) — waterfall priorities,
+   permitted inflow sources, conditions, and **per-quarter** projected
+   inflows/outflows by category. Schema documented in
+   `escrow_agent/sanction.py`; example in
+   `sample_data/sample_sanction_extract.json`.
+   Alternatively pass `--sanction-doc letter.pdf` (or .docx) and the agent
+   extracts this structure via the Anthropic API, saving it as
+   `<name>.extract.json` **for analyst review** — treat AI-extracted sanction
+   structures as drafts until reviewed.
+
+3. **TRA/CATRA taxonomy** (`config/categories.yaml`) — the classification
+   framework. The bundled taxonomy is a **placeholder built from BRD §5.4/§6.2
+   category names**; replace keywords/codes with the official framework file
+   when the business team provides it. Administrators add/change categories by
+   editing this YAML — no code deployment (BRD §6.2, R-03).
+
+## Configuration (no code changes needed)
+
+`config/settings.yaml`: quarter definitions (default Apr–Jun = Q1), materiality
+thresholds (default 10% or INR 10 lakh), balance tolerance (0.1% per BRD §11),
+AI model/batch/confidence settings.
+
+## Classification tiers (BRD §6.2)
+
+1. **Rules** — keyword matching within the transaction's side (Cr→inflow
+   categories, Dr→outflow). Multiple matches resolve by longest-keyword
+   specificity, else fall to tier 2/3.
+2. **AI** — semantic classification of narrations via the Anthropic API.
+   Enabled automatically when `ANTHROPIC_API_KEY` is set (or force via
+   `classification.ai_enabled`). AI may only assign codes from the taxonomy on
+   the correct side; low-confidence results are demoted to the review queue.
+3. **Analyst review queue** — blank/ambiguous narrations. Narrations that
+   *conflict* with the transaction type (e.g. a credit narrated as a loan
+   interest payment) are flagged `POTENTIALLY_INACCURATE_NARRATION` and
+   **escalated separately for manual override**, distinct from the ordinary
+   queue.
+
+Without an API key the agent runs rules-only and routes everything unresolved
+to the review queue — deterministic and fully offline.
+
+## Waterfall & condition validation (BRD §6.4)
+
+Debit and credit sides are validated independently with specific reason codes:
+`CREDIT_UNPERMITTED_SOURCE`, `DEBIT_UNAUTHORIZED_PAYMENT`,
+`DEBIT_OUT_OF_SEQUENCE` (payment made while a higher-priority category
+obligated for the quarter received nothing), and `CONDITION_BREACH_<id>` for
+machine-checkable conditions (`surplus_requires_prior`,
+`category_cap_per_quarter`). Conditions typed `manual` are listed in the
+Exceptions Log for human verification. Unclassified transactions are excluded
+from waterfall checks and surfaced via the review queue instead.
+
+## Validation status (read before relying on numbers)
+
+- **Measured on the synthetic demo set:** every planted control case fires —
+  1 duplicate, balance break, blank-narration review, narration-type conflict
+  escalation, out-of-sequence payments, surplus-before-debt-service breach,
+  quarterly cap breach, unpermitted credit source. Quarter aggregates
+  reconcile exactly to bank Dr/Cr totals (category + unclassified = total).
+  85 workbook formulas recalculate with zero errors. Full-year run: < 1 s
+  (BRD §11 target: 5 min).
+- **Not yet measured:** the BRD's ≥90% classification-accuracy criterion
+  requires the real TRA/CATRA file and a labelled dataset of 500+ real
+  transactions (BRD §11, §9.2). The bundled keyword taxonomy is a placeholder;
+  accuracy on real Axis narrations is unknown until that test is run.
+
+## Project layout
+
+```
+run_agent.py                    CLI pipeline orchestrator
+config/categories.yaml          TRA/CATRA taxonomy (admin-editable)
+config/settings.yaml            thresholds, quarters, AI settings
+escrow_agent/ingestion.py       §6.1 ingestion, dedup, balance validation
+escrow_agent/classification.py  §6.2 hybrid classifier + review queue
+escrow_agent/sanction.py        §6.4 sanction extract schema + AI extraction
+escrow_agent/waterfall.py       §6.4 waterfall & condition validation
+escrow_agent/aggregation.py     §6.3 quarter aggregation, §6.5 variance
+escrow_agent/reporting_excel.py §6.6 Excel workbook
+escrow_agent/reporting_word.py  §6.6 Word management report
+escrow_agent/audit_log.py       §7 audit trail
+sample_data/                    synthetic demo data + generator
+```
+
+Out of scope, per BRD §4.2: sub-accounts, live bank APIs, ERP/GL integration,
+and authentication (handled by enterprise systems).
+
+## Knowledge Base & KB Analysis Pipeline (added)
+
+`kb/` holds the initial deal documents for **Kanpur Lucknow Expressway Pvt. Ltd. / Axis Bank (RTL Rs. 779.75 cr)**:
+
+- `kb/documents/` — Sanction Letter, Credit Approval Memo (Sanction Note), Escrow Agreement (PDF as uploaded; the agreement file is misnamed "Kallagam Meensuruti" but its content is the KLEPL–Axis Bank agreement)
+- `kb/extracted/` — OCR/text extractions of each document
+- `kb/structured/deal_extract.yaml` — **verified ground truth** (waterfall, deposits, covenants, projected P&L/BS) checked against source page images; analysts edit this file to correct anything, and all outputs rebuild from it
+- `kb/kb_index.yaml` — document registry with extraction method and quality notes
+
+Run `python3 run_kb_analysis.py` to produce:
+
+1. `output/CATRA_Master.xlsx` — CATRA classification framework: debit categories = Escrow Agreement Order of Priority 2.3(B)(a)–(m) with waterfall priorities, credit categories = permitted deposits 2.3(A)(a)–(g), sanction cl.20 waterfall mapping + divergences, covenant register, keyword rules. Also regenerates `config/categories.yaml` so the transaction classifier uses the deal-derived taxonomy.
+2. `output/TRA_Analysis.xlsx` — TRA analysis from the CAM projected P&L (FY26–FY35): source P&L, CATRA-mapped cashflow with net-surplus formulas, semi-annual (annuity-cycle) profile, reserve adequacy checks.
+3. `output/Final_Analysis.docx` — summary of everything, clause-by-clause cross-check against the Agreement, and the verdict: **OVERBREACH** (utilisation above permitted) / **UNDERBREACH** (funding below required) / COMPLIANT. On the initial inputs the verdict is on projected basis; the same checks re-run on actuals when the bank statement is ingested.
+
+Validation status: reserve-check arithmetic verified year-by-year against expected values; MMR drawdown-cycle reset and rounding tolerance tested; both workbooks recalc with 0 formula errors; Final Analysis visually verified (5 pages).
+
+## Quarterly ATSL Pipeline (added)
+
+`run_quarterly.py` processes the actual Axis CATRA statements (bank export format: FORACID … TRAN_PARTICULAR, TRAN_AMT, BALANCE, Remarks) for the main account (default 922020065877321) and generates, strictly in the bank-provided output formats:
+
+1. `CATRA_ANALYSIS_Kanpur_Lucknow_ATSL.xlsx` — bank's CATRA workbook with only the ATSL sheet, all quarter values + opening/closing balances filled
+2. `TRA_Analysis_ATSL_Kanpur_Lucknow.xlsx` — bank's TRA workbook, per-quarter debit/credit summation blocks + Sheet2 actuals filled
+3. `Final_Analysis_FY2024-25.docx` — actuals-basis compliance report with OVERBREACH / UNDERBREACH / COMPLIANT verdict
+
+Validation on FY2024-25 (Q1–Q4): all 48 quarter-category totals reconcile to the paisa with the bank's own ATSL figures; all 8 opening/closing balances tie out; TRA Sheet1 reproduces the bank sample with 0 cell diffs; balance integrity holds within and across quarters. Measured classification accuracy on this labelled set: 100% — the BRD ≥90% criterion is met on this data.
+
+## Web Console (added)
+
+`webapp/` is a FastAPI service that serves the Escrow Analyst Console: upload the quarterly statements + the two bank templates, and the agent runs in the background. Every run is tracked (queued -> running -> completed/failed) with a stage-by-stage waterfall indicator, live log, verdict badge, headline stats, downloads for the three reports, re-run and delete.
+
+### Storage
+- If S3_BUCKET is set, all inputs, outputs, and run history live in S3 under S3_PREFIX/runs/{run_id}/ (uses AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION env vars) - survives restarts and redeploys.
+- Without S3_BUCKET, it falls back to a local data/ directory (for local development).
+
+### Run locally
+    pip install -r requirements.txt
+    uvicorn webapp.server.app:app --port 8000
+    # open http://localhost:8000
+
+### Deploy on Render (auto-deploy from GitHub)
+1. Push this folder to a GitHub repo (git init && git add -A && git commit -m "escrow agent" && git remote add origin <repo-url> && git push -u origin main).
+2. In Render: New -> Web Service -> connect the repo. Render reads render.yaml (build: pip install -r requirements.txt, start: uvicorn webapp.server.app:app --host 0.0.0.0 --port $PORT).
+3. In the service's Environment tab set: S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION (and optionally S3_PREFIX, default escrow-agent).
+4. Enable Auto-Deploy (on by default) - every push to main redeploys.
+5. IAM: the key needs s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket on the bucket.
+
+Notes: runs execute in a background thread of the web service (fine for this workload - a full FY run takes ~2s); if a deploy interrupts a running job, re-run it from the dashboard. No authentication is enabled yet - keep the URL private or add Render's access controls until auth is added.
+
+## Usage & Cost KPIs (added)
+
+The console now tracks real Anthropic API token usage and cost, and shows it on the dashboard:
+
+- **Rule-based classification stays the source of truth.** The quarterly ATSL pipeline classifies every transaction by keyword rule first (as before, $0 cost, fully reproducible). If `ANTHROPIC_API_KEY` is set and the "AI-assist review queue" toggle is on for a run, a second Haiku pass runs ONLY on the transactions rules flagged for review (typically ~1 in 150) and records a *suggestion* for the analyst — it never overrides a rule-based total, so the CATRA/TRA figures stay deterministic.
+- **KPI strip at the top of the dashboard** shows: whether AI-assist is configured, cumulative tokens in/out across all runs, and total cost in USD. If no key is set it plainly shows "Not configured — running rules-only, $0 token cost" instead of a misleading zero.
+- **Per-run cost line** on each run card shows the exact call count, input/output tokens, and cost for that run (or "no calls needed" / "off for this run").
+- Pricing table lives in `escrow_agent/ai_usage.py` (`claude-haiku-4-5-20251001` for classification, `claude-sonnet-5` for one-time sanction-document extraction) — update the rates there if Anthropic pricing changes; cost is computed from the token counts Anthropic's API actually returns (`resp.usage`), not an estimate.
+- New endpoint: `GET /api/usage` — aggregate tokens/cost across all runs, plus `api_key_configured` (boolean only; the key itself is never returned to the frontend).
+
+Env var needed for this: `ANTHROPIC_API_KEY` (optional — everything works at $0 without it).

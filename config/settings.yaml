@@ -1,0 +1,35 @@
+# ============================================================================
+# ESCROW AGENT SETTINGS  (all values configurable without code deployment)
+# ============================================================================
+
+# Financial-year quarter definition (BRD §9.1 assumption: April–June = Q1).
+# Month numbers, inclusive. Change here if the deal uses a different FY.
+quarters:
+  Q1: [4, 5, 6]     # Apr–Jun
+  Q2: [7, 8, 9]     # Jul–Sep
+  Q3: [10, 11, 12]  # Oct–Dec
+  Q4: [1, 2, 3]     # Jan–Mar
+
+# Standard output date format (BRD §6.1)
+date_output_format: "%d-%m-%Y"
+
+# Variance analysis (BRD §6.5)
+variance:
+  material_pct_threshold: 10.0     # |variance %| above this is flagged MATERIAL
+  material_abs_threshold: 1000000  # absolute variance (INR) above this is also flagged
+  top_exceptions_per_quarter: 3    # rows in consolidated exceptions summary
+
+# Balance validation tolerance (BRD §11: 0.1%)
+balance_tolerance_pct: 0.1
+
+# Classification (BRD §6.2)
+classification:
+  ai_enabled: auto        # auto = use AI if ANTHROPIC_API_KEY is set; true/false to force
+  ai_model_classification: claude-haiku-4-5-20251001   # high-volume, simple categorization -> cheapest model
+  ai_model_extraction: claude-sonnet-5                 # one-time, complex document extraction -> stronger model
+  ai_batch_size: 25
+  min_ai_confidence: 0.75  # AI results below this go to the analyst review queue
+
+# Waterfall validation cycle: transactions are grouped per calendar month and
+# priority-of-payment order is checked within each cycle (BRD §6.4)
+waterfall_cycle: month

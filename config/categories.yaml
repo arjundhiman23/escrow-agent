@@ -1,0 +1,246 @@
+taxonomy_source: 'Generated from KB: Escrow Agreement cl. 2.3 + Sanction Letter cl. 20 (KLEPL / Axis Bank). Admin-editable.'
+categories:
+- code: TAXES
+  name: Taxes Payable
+  side: debit
+  waterfall_priority: 1
+  agreement_item: 2.3(B)(a)
+  sub_account: Taxes Payable Sub-Account
+  keywords:
+  - gst
+  - tds
+  - income tax
+  - advance tax
+  - cess
+  - duty
+  - levy
+  - statutory
+  description: Tax/levy/duty/charge/impost/fee payable to any Governmental Authority
+- code: CONSTR
+  name: Construction Expenses
+  side: debit
+  waterfall_priority: 2
+  agreement_item: 2.3(B)(b)
+  sub_account: Construction Expenses Sub-Account
+  keywords:
+  - construction
+  - epc
+  - contractor bill
+  - capex
+  - mobilisation
+  - mobilization
+  - ra bill
+  description: Per Construction Budget
+- code: OM_EXP
+  name: O&M Expenses
+  side: debit
+  waterfall_priority: 3
+  agreement_item: 2.3(B)(c)
+  sub_account: O&M Expenses Sub-Account
+  keywords:
+  - o&m
+  - o & m
+  - operation and maintenance
+  - routine maintenance
+  - opex
+  description: Per Operational Budget
+- code: NHAI_OM
+  name: NHAI O&M Expenses
+  side: debit
+  waterfall_priority: 4
+  agreement_item: 2.3(B)(d)
+  sub_account: NHAI O&M Expenses Sub-Account
+  keywords:
+  - nhai o&m
+  - authority o&m
+  - nhai maintenance
+  description: O&M and other costs incurred by NHAI under Concession Agreement
+- code: NHAI_PAY
+  name: NHAI Payments
+  side: debit
+  waterfall_priority: 5
+  agreement_item: 2.3(B)(e)
+  sub_account: NHAI Payments Sub-Account
+  keywords:
+  - nhai payment
+  - payable to nhai
+  - authority payment
+  - concession fee
+  description: Amounts payable to NHAI under Concession Agreement per Approved Budget
+- code: DEBT_SERV
+  name: Debt Service
+  side: debit
+  waterfall_priority: 6
+  agreement_item: 2.3(B)(f)
+  sub_account: Debt Service Sub-Account
+  keywords:
+  - interest
+  - principal
+  - repayment
+  - instalment
+  - installment
+  - emi
+  - debt service
+  - loan servicing
+  description: Debt Service per Approved Budget (interest + principal)
+- code: NHAI_DMG
+  name: NHAI Damages Payment
+  side: debit
+  waterfall_priority: 7
+  agreement_item: 2.3(B)(g)
+  sub_account: NHAI Damages Payment Sub-Account
+  keywords:
+  - damages
+  - penalty to nhai
+  - liquidated damages
+  - ld payment
+  description: Damages/penalties payable to NHAI under Concession Agreement
+- code: SUB_DEBT
+  name: Subordinate Debt
+  side: debit
+  waterfall_priority: 8
+  agreement_item: 2.3(B)(h)
+  sub_account: Subordinate Debt Sub-Account
+  keywords:
+  - subordinate debt
+  - sub debt
+  - sub-debt
+  description: Subordinate debt of Lenders per Financing Documents
+- code: WCR
+  name: Working Capital Reserve
+  side: debit
+  waterfall_priority: 9
+  agreement_item: 2.3(B)(i)
+  sub_account: Working Capital Reserve Sub-Account
+  keywords:
+  - working capital reserve
+  - wcr
+  description: 6 months interest servicing at COD; funds Debt Service between annuities; replenished on Annuity
+    Payment Date
+- code: DSRA
+  name: Debt Service Reserve
+  side: debit
+  waterfall_priority: 10
+  agreement_item: 2.3(B)(j)
+  sub_account: Debt Service Reserve Sub-Account
+  keywords:
+  - dsra
+  - debt service reserve
+  description: Debt Service for forthcoming 2 quarters (operational period); one-time opening DSRA by Promoter on/before
+    COD; replenished 6-monthly
+- code: MMRA
+  name: Major Maintenance Reserve
+  side: debit
+  waterfall_priority: 11
+  agreement_item: 2.3(B)(k)
+  sub_account: Major Maintenance Reserves Sub-Account
+  keywords:
+  - mmr
+  - major maintenance
+  description: Periodic major maintenance cost as approved by Agent
+- code: ADD_OM
+  name: Additional O&M Expenses
+  side: debit
+  waterfall_priority: 12
+  agreement_item: 2.3(B)(l)
+  sub_account: Additional O&M Expenses Sub-Account
+  keywords:
+  - additional o&m
+  - excess o&m
+  description: O&M above Base Case Plan
+- code: CASH_SWEEP
+  name: Cash Sweep
+  side: debit
+  waterfall_priority: 13
+  agreement_item: 2.3(B)(m(i))
+  sub_account: Cash Sweep Account (from Surplus Sub-Account)
+  keywords:
+  - cash sweep
+  - prepayment
+  - pre-payment
+  - pre payment
+  description: Cash Sweep Amount on Cash Sweep Test Date
+- code: DISTRIB
+  name: Distribution / Restricted Payments
+  side: debit
+  waterfall_priority: 14
+  agreement_item: 2.3(B)(m(ii))
+  sub_account: Distribution Account
+  keywords:
+  - dividend
+  - distribution
+  - restricted payment
+  - surplus distribution
+  description: Dividend and other Restricted Payments from Surplus Sub-Account
+- code: EQUITY
+  name: Equity subscription monies (Sponsor/Promoter/other)
+  side: credit
+  agreement_item: 2.3(A)(a)
+  keywords:
+  - equity
+  - share subscription
+  - share capital
+  - share application
+- code: DISBURSE
+  name: Facility disbursements (Construction Period)
+  side: credit
+  agreement_item: 2.3(A)(b)
+  keywords:
+  - disbursement
+  - loan disbursal
+  - facility drawdown
+  - drawdown
+- code: ANNUITY
+  name: Annuity Collection incl. O&M Receipts
+  side: credit
+  agreement_item: 2.3(A)(c)
+  keywords:
+  - annuity
+  - nhai annuity
+  - bonus
+  - o&m receipt
+  - interest receipt
+- code: PROCEEDS
+  name: NHAI funding incl. Mobilization Advance
+  side: credit
+  agreement_item: 2.3(A)(d)
+  keywords:
+  - mobilization advance
+  - mobilisation advance
+  - insurance claim
+  - insurance proceeds
+  - grant
+  - termination payment
+  - promoter contribution
+  - sponsor contribution
+- code: RETENTION
+  name: Transfers from other Retention Accounts
+  side: credit
+  agreement_item: 2.3(A)(e)
+  keywords:
+  - retention account
+  - sub account transfer
+  - sub-account transfer
+- code: INV_INCOME
+  name: Investment income on Retention Account balances
+  side: credit
+  agreement_item: 2.3(A)(f)
+  keywords:
+  - fd interest
+  - fixed deposit interest
+  - investment income
+  - fd maturity
+  - mutual fund redemption
+- code: OTHER_DEP
+  name: Other amounts not required to be paid into another Retention Account
+  side: credit
+  agreement_item: 2.3(A)(g)
+  keywords:
+  - misc receipt
+  - other receipt
+internal_transfer_keywords:
+- retention account
+- sub account
+- sub-account
+- own account transfer
+- internal transfer

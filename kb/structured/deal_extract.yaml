@@ -1,0 +1,134 @@
+# Structured deal extract — verified against source pages (see kb_index.yaml quality notes).
+# Analysts may correct values here; all generated outputs (CATRA, TRA, Final Analysis)
+# rebuild from this file. Amounts in Rs. crore unless stated.
+
+# ---------------------------------------------------------------- CATRA debit side
+# Escrow Agreement clause 2.3(B) — Order of Priority (authoritative for CATRA)
+order_of_priority:
+  - {priority: 1,  code: TAXES,      item: a, name: Taxes Payable,                sub_account: Taxes Payable Sub-Account,
+     desc: Tax/levy/duty/charge/impost/fee payable to any Governmental Authority}
+  - {priority: 2,  code: CONSTR,     item: b, name: Construction Expenses,        sub_account: Construction Expenses Sub-Account,
+     desc: Per Construction Budget, subject to Base Case Business Plan ceiling}
+  - {priority: 3,  code: OM_EXP,     item: c, name: O&M Expenses,                 sub_account: O&M Expenses Sub-Account,
+     desc: Per Operational Budget, subject to Base Case ceiling}
+  - {priority: 4,  code: NHAI_OM,    item: d, name: NHAI O&M Expenses,            sub_account: NHAI O&M Expenses Sub-Account,
+     desc: O&M and other costs incurred by NHAI under Concession Agreement}
+  - {priority: 5,  code: NHAI_PAY,   item: e, name: NHAI Payments,                sub_account: NHAI Payments Sub-Account,
+     desc: Amounts payable to NHAI under Concession Agreement per Approved Budget}
+  - {priority: 6,  code: DEBT_SERV,  item: f, name: Debt Service,                 sub_account: Debt Service Sub-Account,
+     desc: Debt Service per Approved Budget (interest + principal), Distribution Date}
+  - {priority: 7,  code: NHAI_DMG,   item: g, name: NHAI Damages Payment,         sub_account: NHAI Damages Payment Sub-Account,
+     desc: Damages/penalties payable to NHAI under Concession Agreement}
+  - {priority: 8,  code: SUB_DEBT,   item: h, name: Subordinate Debt,             sub_account: Subordinate Debt Sub-Account,
+     desc: Subordinate debt of Lenders per Financing Documents, if any}
+  - {priority: 9,  code: WCR,        item: i, name: Working Capital Reserve,      sub_account: Working Capital Reserve Sub-Account,
+     desc: 6 months interest servicing at COD; funds Debt Service between annuities; replenished on Annuity Payment Date}
+  - {priority: 10, code: DSRA,       item: j, name: Debt Service Reserve,         sub_account: Debt Service Reserve Sub-Account,
+     desc: Debt Service for forthcoming 2 quarters (operational period); one-time opening DSRA by Promoter on/before COD; replenished 6-monthly}
+  - {priority: 11, code: MMRA,       item: k, name: Major Maintenance Reserve,    sub_account: Major Maintenance Reserves Sub-Account,
+     desc: Periodic major maintenance cost as approved by Agent, per Base Case ceiling}
+  - {priority: 12, code: ADD_OM,     item: l, name: Additional O&M Expenses,      sub_account: Additional O&M Expenses Sub-Account,
+     desc: O&M above Base Case Plan, approved by Lenders Agent}
+  - {priority: 13, code: CASH_SWEEP, item: m(i), name: Cash Sweep,                sub_account: Cash Sweep Account (from Surplus Sub-Account),
+     desc: Cash Sweep Amount on Cash Sweep Test Date, prepayment in inverse order of maturity}
+  - {priority: 14, code: DISTRIB,    item: m(ii), name: Distribution / Restricted Payments, sub_account: Distribution Account,
+     desc: Dividend and other Restricted Payments from Surplus Sub-Account}
+
+# Sanction Letter clause 20 waterfall -> mapping to Order of Priority (for cross-check)
+sanction_waterfall:
+  - {step: 1,  text: Statutory dues & taxes,                                   maps_to: TAXES}
+  - {step: 2,  text: Construction related expenses (construction period),      maps_to: CONSTR}
+  - {step: 3,  text: O&M expenses per Business Case Plan,                      maps_to: OM_EXP}
+  - {step: 4,  text: O&M expenses and other costs incurred by the Authority,   maps_to: NHAI_OM}
+  - {step: 5,  text: Amounts due and payable to the Authority,                 maps_to: NHAI_PAY}
+  - {step: 6,  text: Interest service in relation to Facility,                 maps_to: DEBT_SERV}
+  - {step: 7,  text: Next scheduled principal repayment,                       maps_to: DEBT_SERV}
+  - {step: 8,  text: Damages payable to Authority per Concession Agreement,    maps_to: NHAI_DMG}
+  - {step: 9,  text: Funding Working Capital Reserve Account,                  maps_to: WCR}
+  - {step: 10, text: Funding DSRA to required DSRA Amount,                     maps_to: DSRA}
+  - {step: 11, text: Funding MMRA to required MMR Amount per base case,        maps_to: MMRA}
+  - {step: 12, text: O&M payments over and above Base Case Plan,               maps_to: ADD_OM}
+  - {step: 13, text: Cash Sweep, if applicable,                                maps_to: CASH_SWEEP}
+  - {step: 14, text: Distribute residual amounts subject to Restricted Payments, maps_to: DISTRIB}
+
+waterfall_divergences:
+  - The Escrow Agreement includes Subordinate Debt (item h, priority 8); the Sanction
+    Letter clause 20 has no corresponding step. Agreement governs; flag for confirmation.
+  - Sanction Letter splits interest (step 6) and principal (step 7); Agreement folds both
+    into a single Debt Service Sub-Account (item f). No conflict in effective order.
+
+# ---------------------------------------------------------------- CATRA credit side
+# Escrow Agreement clause 2.3(A) — permitted deposits
+permitted_deposits:
+  - {code: EQUITY,     item: a, name: Equity subscription monies (Sponsor/Promoter/other)}
+  - {code: DISBURSE,   item: b, name: Facility disbursements (Construction Period)}
+  - {code: ANNUITY,    item: c, name: Annuity Collection incl. O&M Receipts, Interest Receipts, Bonus (deposit not later than succeeding Business Day)}
+  - {code: PROCEEDS,   item: d, name: NHAI funding incl. Mobilization Advance, Insurance Proceeds, Sponsor/Promoter monies (incl. WCR/DSR funding), damages/LDs received, Termination Payments}
+  - {code: RETENTION,  item: e, name: Transfers from other Retention Accounts}
+  - {code: INV_INCOME, item: f, name: Investment income on Retention Account balances}
+  - {code: OTHER_DEP,  item: g, name: Other amounts not required to be paid into another Retention Account}
+
+# ---------------------------------------------------------------- key covenants for cross-check
+covenants:
+  - id: CV1
+    source: Agreement 2.3(B)(i)
+    rule: WCR = 6 months interest servicing at COD; utilized to fund Debt Service between annuity dates; replenished on Annuity Payment Date.
+  - id: CV2
+    source: Agreement 2.3(B)(j)
+    rule: DSRA = Debt Service (interest + principal + charges) for forthcoming 2 quarters during Operational Period; one-time opening DSRA funded by Promoter on/before COD; replenished at 6-month intervals.
+  - id: CV3
+    source: Agreement 2.3(B)(k) / Sanction step 11
+    rule: MMRA funded to required MMR amount per Base Case.
+  - id: CV4
+    source: Sanction (post-annuity prepayment) / Agreement 2.3(B)(m)(i)
+    rule: Upon each annuity, 50% of surplus (after Base Case payments/provisions per Supplementary Escrow Agreement waterfall) applied to prepayment without charges; prepayment in inverse order of maturity.
+  - id: CV5
+    source: Agreement 2.3(A)(c)
+    rule: Annuity/Bonus must be deposited into Escrow Account on Annuity Payment Date, not later than the succeeding Business Day.
+  - id: CV6
+    source: Agreement 2.3(B) chapeau
+    rule: Company may not withdraw from the Escrow Account otherwise than via the Order of Priority into the specified Sub-Accounts (Monthly Cash Transfer Date), subject to clause 2.6 budget/instruction conditions.
+  - id: CV7
+    source: Agreement 2.11(iii)
+    rule: On Debt Service shortfall, DSRA utilized in full first; continuing shortfall paid pro-rata in order — 1) costs/charges/expenses, 2) additional/penal interest & LDs, 3) interest, 4) principal.
+  - id: CV8
+    source: Sanction clause 20 (bonus)
+    rule: Lenders may apply 100% of NHAI early-completion Bonus to prepayment, provided DSRA and MMR duly created.
+
+# ---------------------------------------------------------------- TRA source (CAM projected P&L)
+# Rs. crore. FYE columns 31.03.26 .. 31.03.35 (FY36+ truncated in source print).
+projected_pnl:
+  fye: ['FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35']
+  income:
+    TPC Annuity:          [19.49, 40.94, 43.54, 46.14, 49.01, 51.99, 55.23, 58.58, 62.20, 66.00]
+    O&M Receipts:         [1.74,  3.59,  3.73,  3.88,  4.04,  4.20,  4.37,  4.54,  4.72,  4.91]
+    Interest on Annuity:  [41.54, 80.44, 76.72, 72.76, 68.57, 64.12, 59.39, 54.37, 49.05, 43.40]
+  income_total:           [62.78, 124.97, 123.99, 122.78, 121.62, 120.30, 118.99, 117.49, 115.97, 114.32]
+  opex:
+    Routine Maintenance:  [0.00, 0.00, 0.00, 0.00, 0.00, 1.63, 1.74, 1.82, 1.91, 2.01]
+    Other O&M:            [1.41, 3.28, 3.38, 3.49, 3.61, 3.73, 3.86, 3.99, 4.14, 4.29]
+    MMR Provisioning:     [0.00, 5.79, 5.79, 5.79, 5.79, 5.79, 5.79, 0.00, 8.14, 8.14]
+  opex_total:             [1.41, 9.06, 9.17, 9.28, 9.39, 11.15, 11.38, 5.81, 14.19, 14.44]
+  ebitda:                 [61.37, 115.90, 114.82, 113.50, 112.23, 109.16, 107.61, 111.68, 101.78, 99.88]
+  interest:               [61.32, 59.24, 55.01, 50.12, 44.95, 39.53, 34.48, 29.53, 24.72, 19.80]
+  depreciation:           [28.60, 26.89, 56.45, 55.90, 55.37, 54.73, 54.13, 53.45, 52.76, 52.01]
+  pbt:                    [-28.55, 29.77, 3.36, 7.48, 11.91, 14.90, 19.00, 28.70, 24.30, 28.07]
+  csr:                    [0.00, 0.00, 0.00, 0.09, 0.17, 0.23, 0.30, 0.41, 0.47, 0.53]
+  tax:                    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+  pat:                    [-28.55, 29.77, 3.36, 7.39, 11.74, 14.67, 18.70, 28.29, 23.83, 27.54]
+
+projected_balance_sheet:
+  fye: ['FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35']
+  long_term_debt:         [729.06, 670.58, 608.20, 542.70, 474.09, 413.27, 350.89, 291.62, 229.25, 162.97]
+  cmltd:                  [38.99, 58.48, 62.38, 65.50, 68.62, 60.82, 62.38, 59.26, 62.38, 66.28]
+  dsra_fund:              [25.82, 56.75, 56.25, 55.22, 54.07, 47.65, 45.95, 41.99, 41.09, 40.43]
+  mmr_fund:               [0.00, 5.79, 11.58, 17.36, 23.15, 28.94, 0.50, 0.00, 8.14, 16.29]
+  working_capital_reserve: [7.03, 6.62, 6.12, 5.60, 5.24, 4.70, 4.15, 3.62, 3.07, 2.48]
+  cash_and_bank:          [0.00, 9.29, 33.55, 57.75, 82.39, 111.08, 135.83, 159.69, 178.46, 196.86]
+
+annuity_terms:
+  structure: 60% of Bid Project Cost in 30 biannual instalments over 15 years from 180th day of COD; 40% as Grant in 10 instalments of 4% during construction
+  first_annuity: within 15 days of the 180th day from Actual COD/PCOD, then every 6 months
+  termination_payment: 65% of Annuity — Rs. 610.22 crore
+  interest_on_annuity: on reducing balance of annuity
+  om_receipts: paid with annuity instalments; year-1 O&M quoted by PNC Infratech Rs. 3.00 crore
