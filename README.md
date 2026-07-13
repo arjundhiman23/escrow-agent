@@ -304,3 +304,20 @@ This also surfaced a real matching bug: the TRA Sheet2 "TPC Annuity" row had a f
 income line containing the substring "annuity" — which incorrectly picked up Athena's unrelated "GST annuity"
 revenue line (a solar-specific component, not a road-deal annuity) once real income data was present. Fixed
 to require an exact/specific label match rather than a loose substring fallback.
+
+## Related/group entity matching for Internal Company Transfer (this session)
+
+Reconciling Athena Hisar's generated CATRA against the bank's own output surfaced a real gap: credits from
+sister SPVs (e.g. "ATHENA JAIPUR SOLAR POWER P LTD") with no "transfer" keyword in the narration were
+defaulting to Other Revenue, since the classifier only matched narration text, not counterparty identity.
+The bank's own convention classifies these by *who sent the money*, not what the narration literally says.
+
+Added a `related_entities` list to the deal profile schema (admin-editable, shown in the profile review UI
+and the raw JSON editor) — credits from any listed counterparty name are now classified as Internal Company
+Transfer regardless of narration wording. Verified against the bank's own Q1 FY2024-25 figure for Athena
+Hisar: exact match (Rs. 13,41,75,364 both sides) once "Athena Jaipur Solar" was added to the deal's profile.
+
+Q3 (Rs. 1,01,49,213.02) and Q4 (Rs. 70,000) in the bank's figures remain partially unexplained — the
+underlying narrations don't clearly identify a counterparty and the bank's Remarks column doesn't tag these
+rows the way it does for other categories, so further reconciliation would need either the bank's
+transaction-level detail or additional related-entity names as they're identified.

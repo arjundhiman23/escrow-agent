@@ -64,11 +64,15 @@ def execute_run(st, deal_id, run_id):
             _stage(st, deal_id, run_id, meta, "CLASSIFY")
             tracker = UsageTracker()
             ai_assist = bool(os.environ.get("ANTHROPIC_API_KEY")) and meta.get("ai_assist", True)
-            classify_all(txns, ai_assist=ai_assist, ai_model=AI_MODEL_CLASSIFICATION, tracker=tracker)
+            related_entities = (deal.get("profile") or {}).get("related_entities", [])
+            classify_all(txns, ai_assist=ai_assist, ai_model=AI_MODEL_CLASSIFICATION, tracker=tracker,
+                        related_entities=related_entities)
             summary = quarter_summary(txns)
             n_review = sum(1 for t in txns if t.review or t.conflict)
             n_ai_suggested = sum(1 for t in txns if t.ai_suggestion)
             _log(st, deal_id, run_id, meta, f"classified {len(txns)} transactions; {n_review} flagged for review")
+            if related_entities:
+                _log(st, deal_id, run_id, meta, f"related-entity matching applied for: {', '.join(related_entities)}")
             if ai_assist:
                 u = tracker.summary()
                 _log(st, deal_id, run_id, meta,

@@ -100,6 +100,15 @@ covenants:
     source: Trust and Retention Account Agreement 3.2(b)
     rule: If Tax and Statutory Dues Account has a funding deficiency, the Account Bank draws first from the Surplus Account, then (with Lenders' Agent approval) other Accounts under 3.2(c)-(e), provided such tax payment is within the Annual Budget.
 
+# ---------------------------------------------------------------- related group/affiliate entities
+# Credits from these counterparties are classified as Internal Company Transfer even when the narration
+# has no "transfer" keyword — matches the bank's own convention of classifying by counterparty identity,
+# confirmed by reconciling against the bank's own ATSL output for Q1 FY2024-25 (Rs. 1,99,45,364 credit
+# narrated only "ATHENA JAIPUR SOLAR POWER P LTD" was included in the bank's "COMPANY TRANSFER" total).
+# Admin-editable: add further Athena Group SPV names here as they're identified in future quarters.
+related_entities:
+  - Athena Jaipur Solar
+
 # ---------------------------------------------------------------- TRA source (Sanction Note full projected
 # Income Statement, page 14 "Projections: Rs. Cr" table — corrected from an earlier extraction pass that
 # only found the nearby DSCR-calculation summary table and incorrectly concluded depreciation/PBT/PAT were

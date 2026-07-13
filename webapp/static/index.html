@@ -328,6 +328,7 @@ function renderProfileSection(deal){
   const p = deal.profile;
   const op = (p.order_of_priority||[]).slice().sort((a,b)=>(a.priority||99)-(b.priority||99));
   const cv = p.covenants || [];
+  const re_ = p.related_entities || [];
   const pnl = p.projected_pnl || {};
   const hasPnl = (pnl.fye||[]).length > 0;
   return `<div class="section">
@@ -348,6 +349,13 @@ function renderProfileSection(deal){
     <table class="mini-table"><thead><tr><th>ID</th><th>Source</th><th>Rule</th></tr></thead><tbody>
       ${cv.length ? cv.map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.source)}</td><td>${esc(r.rule)}</td></tr>`).join('')
                   : '<tr><td colspan="3" style="color:var(--steel)">None extracted yet</td></tr>'}
+    </tbody></table>
+
+    <div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Related / Group Entities (${re_.length})</div>
+    <div class="desc" style="margin-bottom:10px">Credits from these counterparty names are classified as Internal Company Transfer even without a "transfer" keyword in the narration - add sister SPV names here as they're identified from reconciliation against the bank's own output.</div>
+    <table class="mini-table"><thead><tr><th>Entity name (matched as a substring, case-insensitive)</th></tr></thead><tbody>
+      ${re_.length ? re_.map(name=>`<tr><td>${esc(name)}</td></tr>`).join('')
+                  : '<tr><td style="color:var(--steel)">None added yet</td></tr>'}
     </tbody></table>
 
     <div style="font:600 11.5px var(--sans);letter-spacing:.3px;text-transform:uppercase;color:var(--steel);margin-bottom:6px">Projected P&amp;L</div>

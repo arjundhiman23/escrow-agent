@@ -55,11 +55,16 @@ def read_quarter(path, quarter, account):
     return txns
 
 
-def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119")):
+def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119"), related_entities=()):
     n = t.narration.lower()
     if t.dc == "C":
         if "disbursement credit" in n or any(a in t.narration for a in loan_accounts):
             return "Proceed from Term Loan", "narration: loan disbursement"
+        # known related/group entity as counterparty -> internal company transfer, even when the
+        # narration is just the counterparty name with no "transfer" keyword (matches bank convention
+        # of classifying by who sent the money, not just what the narration literally says)
+        if any(e.lower() in n for e in related_entities if e):
+            return "Internal Company transfer", "narration: known related entity counterparty"
         if any(k in n for k in ("mutual fund", "mutua", "fd matur", "fd closure", "trd", "fixed deposit",
                                 "flexi deposit", "deposit prin")):
             return "From Redemption of Investments", "narration: investment redemption"
@@ -101,12 +106,16 @@ REMARK_MAP = {
 }
 
 
-def classify_all(txns, ai_assist=False, ai_model="claude-haiku-4-5-20251001", tracker=None):
+def classify_all(txns, ai_assist=False, ai_model="claude-haiku-4-5-20251001", tracker=None, related_entities=()):
     """Rule-classify every transaction, then (optionally) run a cheap AI pass
     over just the ones flagged for review — never overrides a rule match.
+    `related_entities` is a deal-specific, admin-editable list of known group/
+    affiliate company names (from the deal profile) so credits from sister
+    SPVs are recognised as Internal Company Transfer even without a "transfer"
+    keyword in the narration.
     """
     for t in txns:
-        t.category, t.basis = classify(t)
+        t.category, t.basis = classify(t, related_entities=related_entities)
         if t.basis.endswith("(flag for review)"):
             t.review = True
         # conflict check vs bank's own remark where present

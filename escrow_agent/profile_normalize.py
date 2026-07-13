@@ -17,6 +17,7 @@ def normalize_profile(raw: dict) -> dict:
         "permitted_deposits": list(raw.get("permitted_deposits", [])),
         "sanction_waterfall": list(raw.get("sanction_waterfall", [])),
         "covenants": list(raw.get("covenants", [])),
+        "related_entities": list(raw.get("related_entities", [])),
         "annuity_terms": dict(raw.get("annuity_terms", {})),
     }
 
