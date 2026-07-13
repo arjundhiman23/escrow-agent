@@ -71,6 +71,12 @@ def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119"), relat
         if any(k in n for k in ("inter company transfer", "intercompany transfer", "inter-company transfer",
                                 "internal company transfer")):
             return "Internal Company transfer", "narration: inter-company transfer"
+        # explicit refund narrations (tax refunds, balance refunds, GST refunds, vendor refunds, etc.)
+        # map to the bank's dedicated "Other Refunds" ATSL category -> distinct from generic Other Revenue.
+        # Checked before the expense-narration fallback below since "refund" is a more specific, confident
+        # signal than the ambiguous expense-reversal guess.
+        if "refund" in n:
+            return "Other Refunds", "narration: refund"
         # credit bearing an expense narration = probable reversal/refund. Bank convention
         # (note * on ATSL sheet) routes all non-redemption, non-loan credits to Other
         # Revenue; we follow it for reconciliation but flag the row as an observation.

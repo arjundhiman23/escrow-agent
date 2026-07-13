@@ -321,3 +321,21 @@ Q3 (Rs. 1,01,49,213.02) and Q4 (Rs. 70,000) in the bank's figures remain partial
 underlying narrations don't clearly identify a counterparty and the bank's Remarks column doesn't tag these
 rows the way it does for other categories, so further reconciliation would need either the bank's
 transaction-level detail or additional related-entity names as they're identified.
+
+## "Other Refunds" classification rule added (this session)
+
+Reconciling Athena Hisar's Q4 against the bank's own output revealed that "Other Refunds" — a valid ATSL
+credit category — had never once been produced by the classifier; nothing in the rule set mapped to it, so
+every refund-type credit (tax refunds, GST refunds, balance refunds) silently fell into the generic "Other
+Revenue" bucket instead, for every deal, since this is a narration-keyword rule with no deal-specific logic.
+
+Added a dynamic rule: any narration containing "refund" now classifies as Other Refunds (checked before the
+existing expense-narration-reversal fallback, since a refund is a more specific and confident signal). This
+is not deal-specific — it applies automatically to any statement, present and future.
+
+Verified: Athena Hisar Q4 "Other Refunds" now matches the bank's figure exactly (Rs. 49,06,890 both sides);
+Kallagam's own GST refund (Rs. 3,65,56,544, previously undetected since no bank reconciliation file existed
+for that deal) is now also correctly bucketed; Kanpur Lucknow unaffected (no refund-type transactions in its
+statements, so no change in behaviour there). The only remaining unresolved gap against Athena's bank output
+is the Rs. 70,000 Internal Company Transfer item in Q3/Q4 whose counterparty still isn't identifiable from
+the visible narration or the bank's own Remarks column.
