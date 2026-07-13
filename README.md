@@ -259,3 +259,32 @@ verdict COMPLIANT, matching a manual reconciliation exactly (₹126.82cr inflow 
 
 All three onboarded deals (Kanpur Lucknow Expressway, Kallagam-Meensurutti Highway, Athena Hisar Solar Power)
 re-verified together in one regression pass to confirm no cross-deal regressions from any fix in this session.
+
+## TRA Sheet2 "Projected Cashflow" bug fix (this session)
+
+Found and fixed a real bug: TRA_Analysis_ATSL.xlsx's Sheet2 "Projected Cashflow as per Sanction note"
+column (Column C — the single-year projected figures) was **never being written by the pipeline at all**.
+It silently carried over whatever was in the source template file — which, since every new deal reused
+the same bank-template file, meant every deal after the first showed **Kanpur Lucknow's own projected P&L
+figures**, mislabeled as if they were that deal's own Sanction Note projections.
+
+Fixed properly:
+- `build_tra()` now takes the deal's confirmed profile and the run's FY, and fills Column C from that
+  deal's own `projected_pnl` — matched to the correct financial year (parses "FY 2024-25" style labels
+  against the profile's `fye` list; if no exact year match exists, e.g. a pre-COD deal whose projections
+  only start post-construction, it clearly notes the fallback year used directly in the sheet rather than
+  silently guessing).
+- Line-item lookups (TPC Annuity, O&M, Interest on Annuity, Routine Maintenance, Other O&M, MMR
+  Provisioning, Interest, Depreciation) search income/opex dictionaries separately by name, so an income
+  line can never be accidentally matched against an expense line of a similar name.
+- The actual-quarter columns (D-G) were also corrected: previously the "Interest" row showed investment
+  redemption inflows as a stand-in for interest expense — a mismatch that made no sense on inspection.
+  Since the ATSL bank categories bundle interest and principal together under "Debt servicing" with no
+  way to isolate pure interest from an actual bank statement, that row's actual columns are now left
+  honestly blank rather than filled with an unrelated proxy figure. Only "Other O&M" has a genuine
+  actual-vs-projected comparison, since it maps directly to an ATSL category.
+
+Re-verified across all three onboarded deals: each now shows its own distinct projected figures in Sheet2
+(confirmed Kanpur Lucknow's 19.49 vs Kallagam's 36.1 vs Athena's 0/21.81 all differ correctly), all
+workbooks recalculate with 0 formula errors, and the FY-mismatch note appears correctly for Kanpur
+Lucknow (whose actual run FY predates its own post-construction projection years).

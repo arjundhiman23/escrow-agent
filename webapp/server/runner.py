@@ -95,7 +95,8 @@ def execute_run(st, deal_id, run_id):
                                         deal_name=deal_name, account=meta["account"], fy=meta.get("fy", ""))
             _stage(st, deal_id, run_id, meta, "TRA")
             tra_path, _ = build_tra(os.path.join(ind, meta["inputs"]["tra_template"]), summary,
-                                    os.path.join(outd, "TRA_Analysis_ATSL.xlsx"))
+                                    os.path.join(outd, "TRA_Analysis_ATSL.xlsx"),
+                                    extract=deal.get("profile"), fy=meta.get("fy", ""))
             _stage(st, deal_id, run_id, meta, "FINAL")
             recon = {"n_txns": len(txns), "n_cells": 12 * len(qs),
                      "accuracy": "totals reconcile to statement balances",

@@ -121,8 +121,11 @@ TRA_ROW_MAP = {
 }
 
 
-def build_tra(template_path, summary, out_path):
-    """Fill the bank's TRA workbook per-quarter summation blocks and Sheet2 actuals."""
+def build_tra(template_path, summary, out_path, extract=None, fy=""):
+    """Fill the bank's TRA workbook per-quarter summation blocks and Sheet2 actuals.
+    `extract` is the deal's confirmed profile (for Sheet2's projected column); `fy` is
+    the run's financial year label, used to pick the matching year from the deal's
+    own projected P&L."""
     wb = load_workbook(template_path)
     ws = wb["Sheet1"]
 
@@ -157,27 +160,111 @@ def build_tra(template_path, summary, out_path):
                     break
             r += 1
 
-    # Sheet2 actuals (bank's mapping: 'Other O&M' <- O&M outflow; 'Interest' <- redemption inflow;
-    # annuity rows 0 — no annuity received pre-DOCC). Values in Rs. crore.
+    # Sheet2: Column C = this deal's OWN projected figures from its Sanction Note/CAM,
+    # for the FY matching this run (or the first available year with a clear note if no
+    # exact match) — never left as whatever was in the source template file. Columns D-G
+    # = actual quarterly figures, filled only where the ATSL bank categorisation can
+    # actually produce a comparable figure (e.g. 'Interest' cannot be isolated from the
+    # combined 'Debt servicing' actual, so that row's actuals are left blank rather than
+    # showing a misleading proxy).
     ws2 = wb["Sheet2"]
     CR = 1e7
+    pnl = (extract or {}).get("projected_pnl") or {}
+    fye = pnl.get("fye") or []
+    idx, matched_label, exact = _match_fy_index(fy, fye)
+
+    def _lookup_in(pool, *substrings):
+        """Case-insensitive substring match within a single income OR opex dict."""
+        if idx is None or not pool:
+            return None
+        for name, series in pool.items():
+            if any(s in name.lower() for s in substrings):
+                try:
+                    return round(series[idx], 2)
+                except (IndexError, TypeError):
+                    return None
+        return None
+
+    income = pnl.get("income") or {}
+    opex = pnl.get("opex") or {}
+    PROJECTED_ROW_LOOKUP = {
+        "tpc annuity":          lambda: _lookup_in(income, "tpc annuity", "annuity revenue") or
+                                        (_lookup_in(income, "annuity") if not _lookup_in(income, "interest on annuity") else None),
+        "inflation":            lambda: 0,
+        "o&m":                  lambda: _lookup_in(income, "o&m receipt", "o&m"),
+        "interest on annuity":  lambda: _lookup_in(income, "interest on annuity", "interest annuity"),
+        "routine maintenance exp": lambda: _lookup_in(opex, "routine maintenance"),
+        "other o&m":            lambda: _lookup_in(opex, "other o&m"),
+        "mmr provisioning":     lambda: _lookup_in(opex, "mmr"),
+        "interest":             lambda: (round(pnl["interest"][idx], 2) if idx is not None and pnl.get("interest") else None),
+        "depreciation":         lambda: (round(pnl["depreciation"][idx], 2) if idx is not None and pnl.get("depreciation") else None),
+    }
+    filled_c = 0
+    for r in range(1, ws2.max_row + 1):
+        lab = _norm(ws2.cell(row=r, column=2).value)
+        for prefix, fn in PROJECTED_ROW_LOOKUP.items():
+            if lab.startswith(prefix):
+                val = fn()
+                ws2.cell(row=r, column=3).value = val if val is not None else 0
+                if val is not None:
+                    filled_c += 1
+                break
+
+    # actual quarterly columns D-G: only for lines the ATSL categories can genuinely support
     row_fill = {}
     for r in range(1, ws2.max_row + 1):
         lab = _norm(ws2.cell(row=r, column=2).value)
-        if lab in ("tpc annuity", "interest on annuity", "o&m"):
-            row_fill[r] = [0, 0, 0, 0]
-        elif lab == "other o&m":
+        if lab == "other o&m":
             row_fill[r] = [round(summary[q]["debits"]["O&M Exp/Project Construction Payments"] / CR, 2)
                           if q in summary else 0 for q in QUARTERS]
-        elif lab == "interest":
-            row_fill[r] = [round(summary[q]["credits"]["From Redemption of Investments"] / CR, 2)
-                          if q in summary else 0 for q in QUARTERS]
+        elif lab in ("tpc annuity", "interest on annuity", "o&m", "interest", "routine maintenance exp",
+                    "mmr provisioning", "inflation", "depreciation"):
+            # not separable from combined ATSL categories on an actuals basis (e.g. 'Interest' is bundled
+            # into 'Debt servicing' along with principal) — leave actual columns blank rather than guess
+            row_fill[r] = [None, None, None, None]
     for r, vals in row_fill.items():
         for j, v in enumerate(vals):
-            ws2.cell(row=r, column=4 + j, value=v)
-            filled += 1
+            cell = ws2.cell(row=r, column=4 + j)
+            cell.value = v
+            if v is not None:
+                filled += 1
+
+    if fye and not exact:
+        note_row = ws2.max_row + 2
+        ws2.cell(row=note_row, column=2).value = (
+            f"Note: run FY not found in this deal's projected P&L years ({', '.join(fye)}); "
+            f"showing {matched_label} as the closest/default year — verify against the Sanction Note.")
+
     wb.save(out_path)
-    return out_path, filled
+    return out_path, filled + filled_c
+
+
+def _match_fy_index(run_fy, fye_list):
+    """Match a free-text run FY (e.g. 'FY 2024-25') to an entry in a deal's projected
+    P&L fye list (e.g. ['FY26','FY27',...]). Returns (index_or_None, matched_label, exact_bool)."""
+    if not fye_list:
+        return None, None, True
+    import re
+    m = re.search(r"(\d{4})\s*-\s*(\d{2,4})", run_fy or "")
+    end_year = None
+    if m:
+        start = int(m.group(1))
+        end_frag = m.group(2)
+        end_year = int(end_frag) if len(end_frag) == 4 else (start // 100) * 100 + int(end_frag)
+    else:
+        m2 = re.search(r"(\d{4})", run_fy or "")
+        if m2:
+            end_year = int(m2.group(1))
+    if end_year is not None:
+        target_2d = end_year % 100
+        for i, label in enumerate(fye_list):
+            lm = re.search(r"(\d{2,4})", label)
+            if lm:
+                lbl_2d = int(lm.group(1)) % 100
+                if lbl_2d == target_2d:
+                    return i, label, True
+    # no match — default to first year, clearly flagged as inexact
+    return 0, fye_list[0], False
 
 
 # ---------------------------------------------------------------- Final Analysis (actuals)
