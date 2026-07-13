@@ -288,3 +288,19 @@ Re-verified across all three onboarded deals: each now shows its own distinct pr
 (confirmed Kanpur Lucknow's 19.49 vs Kallagam's 36.1 vs Athena's 0/21.81 all differ correctly), all
 workbooks recalculate with 0 formula errors, and the FY-mismatch note appears correctly for Kanpur
 Lucknow (whose actual run FY predates its own post-construction projection years).
+
+## Correction: Athena Hisar's projected P&L was incomplete (this session)
+
+A follow-up review found that the Athena Hisar profile's `projected_pnl` was missing depreciation/PBT/PAT —
+an earlier extraction pass only found the CAM's DSCR-calculation summary table (page 15) and stopped there,
+incorrectly concluding those fields were absent from the source. A fuller Income Statement projection
+(page 14, "Projections: Rs. Cr") does exist, with Net sales / GST annuity / VGF revenue / Revenue / EBITDA /
+Other income (Interest on DSRA) / Interest / Depreciation / PBT / PAT for FY25-FY40. `deal_extract_athena_hisar.yaml`
+now uses this fuller table. Note it reports a different "Interest" figure than the DSCR-calc table (Rs. 24.51cr
+vs Rs. 21.81cr in FY25) — both are genuine source figures serving different purposes (P&L finance cost vs.
+DSRA-sizing calculation); documented in the profile's notes.
+
+This also surfaced a real matching bug: the TRA Sheet2 "TPC Annuity" row had a fallback that matched any
+income line containing the substring "annuity" — which incorrectly picked up Athena's unrelated "GST annuity"
+revenue line (a solar-specific component, not a road-deal annuity) once real income data was present. Fixed
+to require an exact/specific label match rather than a loose substring fallback.

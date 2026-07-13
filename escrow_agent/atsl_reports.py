@@ -188,8 +188,7 @@ def build_tra(template_path, summary, out_path, extract=None, fy=""):
     income = pnl.get("income") or {}
     opex = pnl.get("opex") or {}
     PROJECTED_ROW_LOOKUP = {
-        "tpc annuity":          lambda: _lookup_in(income, "tpc annuity", "annuity revenue") or
-                                        (_lookup_in(income, "annuity") if not _lookup_in(income, "interest on annuity") else None),
+        "tpc annuity":          lambda: _lookup_in(income, "tpc annuity", "annuity revenue", "total annuity"),
         "inflation":            lambda: 0,
         "o&m":                  lambda: _lookup_in(income, "o&m receipt", "o&m"),
         "interest on annuity":  lambda: _lookup_in(income, "interest on annuity", "interest annuity"),

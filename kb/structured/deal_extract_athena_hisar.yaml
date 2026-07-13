@@ -100,25 +100,28 @@ covenants:
     source: Trust and Retention Account Agreement 3.2(b)
     rule: If Tax and Statutory Dues Account has a funding deficiency, the Account Bank draws first from the Surplus Account, then (with Lenders' Agent approval) other Accounts under 3.2(c)-(e), provided such tax payment is within the Annual Budget.
 
-# ---------------------------------------------------------------- TRA source (Sanction Note DSCR-calculation table, native text)
-# Rs. crore. This CAM presents projections in DSCR-calculation format (EBITDA, VGF/GST adjustments, interest,
-# principal, DSCR) rather than a full P&L with depreciation/PBT/PAT — those lines are left absent below and
-# will be derived/zero-filled by the normalization layer, which is expected here (see notes).
+# ---------------------------------------------------------------- TRA source (Sanction Note full projected
+# Income Statement, page 14 "Projections: Rs. Cr" table — corrected from an earlier extraction pass that
+# only found the nearby DSCR-calculation summary table and incorrectly concluded depreciation/PBT/PAT were
+# absent from the source. They are present; see notes for reconciliation against the DSCR-calc table's
+# separate (lower) "Interest + BG Fee" figure, which differs from this table's plain "Interest" line.
 projected_pnl:
   fye: ['FY25','FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35','FY36','FY37','FY38','FY39','FY40']
   income:
-    EBITDA (as reported): [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
-  income_total:           [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
+    Net sales: [47.16, 46.81, 46.47, 46.26, 45.79, 45.45, 45.10, 44.88, 44.42, 44.08, 43.73, 43.51, 43.05, 42.71, 42.37, 42.14]
+    GST annuity: [0.85, 0.76, 0.66, 0.55, 0.43, 0.30, 0.14, 0.01, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    VGF revenue: [0.76, 0.75, 0.75, 0.74, 0.73, 0.73, 0.72, 0.72, 0.71, 0.71, 0.70, 0.70, 0.69, 0.68, 0.68, 0.67]
+    Other income (Interest on DSRA): [0.38, 0.42, 0.41, 0.41, 0.41, 0.41, 0.40, 0.38, 0.37, 0.36, 0.34, 0.33, 0.32, 0.32, 0.27, 0.24]
+  income_total: [48.77, 48.33, 47.88, 47.55, 46.95, 46.47, 45.97, 45.61, 45.13, 44.78, 44.44, 44.21, 43.74, 43.39, 43.05, 42.81]
   opex: {}
-  opex_total:             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-  ebitda:                 [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
-  interest:               [21.81, 21.24, 20.18, 19.12, 17.89, 16.60, 15.20, 13.79, 12.30, 10.80, 9.27, 7.72, 6.06, 4.33, 2.59, 0.98]
-  depreciation:           [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-  # principal repayment captured under balance sheet 'cmltd' (matches how tra_builder reads scheduled principal)
-  pbt: []
-  csr: []
-  tax: []
-  pat: []
+  opex_total: [8.54, 8.79, 9.05, 9.33, 9.61, 8.92, 9.24, 9.57, 9.92, 10.29, 11.68, 12.09, 12.51, 12.95, 13.43, 12.92]
+  ebitda: [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
+  interest: [24.51, 23.94, 22.87, 21.82, 20.59, 19.30, 17.90, 16.49, 14.99, 13.49, 11.96, 10.42, 8.76, 7.03, 5.29, 3.68]
+  depreciation: [19.67, 19.67, 19.67, 19.67, 19.67, 19.67, 5.20, 5.20, 5.20, 5.20, 5.20, 5.20, 5.20, 5.20, 5.20, 5.27]
+  pbt: [-3.57, -3.65, -3.31, -2.87, -2.52, -1.02, 14.04, 14.74, 15.39, 16.16, 15.94, 16.84, 17.60, 18.53, 19.41, 21.19]
+  csr: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  tax: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  pat: [-3.57, -3.65, -3.31, -2.87, -2.52, -1.02, 14.04, 14.74, 15.39, 16.16, 15.94, 16.84, 17.60, 18.53, 19.41, 0]
 
 projected_balance_sheet:
   fye: ['FY25','FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35','FY36','FY37','FY38','FY39','FY40']
@@ -138,12 +141,22 @@ annuity_terms:
   interest_on_annuity: Not applicable
 
 notes:
-  - This CAM presents projections in DSCR-calculation format (EBITDA / VGF adjustment / GST principal
-    add-back / cash available for debt service / interest+BG fee / principal repayment / DSCR), not a full
-    Income Statement — no explicit depreciation, PBT, PAT, or projected Balance Sheet (DSRA/reserve fund
-    balances) table was found in the pages reviewed. The normalization layer will derive PBT/PAT as
-    EBITDA-minus-interest with depreciation defaulted to 0, which understates real PAT (ignores D&A and
-    tax) — treat the TRA "PAT" figures in generated reports as indicative only, not the audited figure.
+  - "CORRECTION: an earlier extraction pass only found the DSCR-calculation summary table (page 15) and
+    concluded depreciation/PBT/PAT were absent from the CAM. A fuller Income Statement projection exists
+    on page 14 (\"Projections: Rs. Cr\") with Net sales / GST annuity / VGF revenue / Revenue / EBITDA /
+    Other income (Interest on DSRA) / Interest / Depreciation / PBT / PAT for FY25-FY40 — now used as the
+    projected_pnl source above."
+  - The page-14 Income Statement's "Interest" line (Rs. 24.51 cr in FY25) differs from the page-15
+    DSCR-calculation table's "Interest + BG Fee" line (Rs. 21.81 cr in FY25) — the latter nets out a BG
+    (bank guarantee) fee component differently and is used for DSCR sizing, while the former is the P&L
+    finance-cost line. Both are genuine source figures; this profile uses the page-14 P&L figure for
+    EBITDA/PBT/PAT consistency. Confirm which is more relevant to your specific question if it matters.
+  - FY40 PAT cell is genuinely blank in the source table (visually confirmed against the page image, not a
+    text-extraction artifact) — set to 0 here; the CAM itself does not state a FY40 PAT.
+  - No projected Balance Sheet (DSRA/reserve fund balances) table was found in the pages reviewed — only
+    the reserve *policy* descriptions (1-quarter cash DSRA, Base Case MMR funding) and the repayment
+    schedule (captured as 'cmltd' above from the separate DSCR-calc table on page 15). Reserve-adequacy
+    checks will read fund balances as 0 with a note until this is supplied or located elsewhere in the CAM.
   - Escrow Agreement PDF has a degraded embedded text layer (e.g. "AGREEf,IEI{T" for "AGREEMENT", "SOI.AR"
     for "SOLAR") — clauses were read allowing for these OCR-like artifacts; if precise clause wording is
     needed for a legal position, re-verify against the original scanned images rather than this extract.
