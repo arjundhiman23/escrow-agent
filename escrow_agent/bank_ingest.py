@@ -60,8 +60,12 @@ def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119")):
     if t.dc == "C":
         if "disbursement credit" in n or any(a in t.narration for a in loan_accounts):
             return "Proceed from Term Loan", "narration: loan disbursement"
-        if any(k in n for k in ("mutual fund", "mutua", "fd matur", "fd closure", "trd", "fixed deposit")):
+        if any(k in n for k in ("mutual fund", "mutua", "fd matur", "fd closure", "trd", "fixed deposit",
+                                "flexi deposit", "deposit prin")):
             return "From Redemption of Investments", "narration: investment redemption"
+        if any(k in n for k in ("inter company transfer", "intercompany transfer", "inter-company transfer",
+                                "internal company transfer")):
+            return "Internal Company transfer", "narration: inter-company transfer"
         # credit bearing an expense narration = probable reversal/refund. Bank convention
         # (note * on ATSL sheet) routes all non-redemption, non-loan credits to Other
         # Revenue; we follow it for reconciliation but flag the row as an observation.
@@ -69,11 +73,12 @@ def classify(t: Txn, loan_accounts=("923060049840106", "923060049840119")):
             return "Other Revenue", "credit with expense narration — probable reversal/refund (flag for review)"
         return "Other Revenue", "default credit (NHAI/sponsor/other receipts; DOCC not achieved)"
     else:
-        if any(k in n for k in ("statutory", "gst", "tds", "advance tax", "income tax")):
+        if any(k in n for k in ("statutory", "gst", "tds", "advance tax", "income tax", "stat pay")):
             return "Statutory Payments", "narration: statutory"
-        if any(k in n for k in ("debt servic", "debt service")):
+        if any(k in n for k in ("debt servic", "debt service", "cash sweep")):
             return "Debt servicing", "narration: debt servicing"
-        if any(k in n for k in ("liquid fund", "mutual fund", "fixed deposit", " fd ", "investment")):
+        if any(k in n for k in ("liquid fund", "mutual fund", "fixed deposit", " fd ", "investment",
+                                "term deposit")) or n.startswith("td/"):
             return "Permitted Investments", "narration: investment placement"
         if any(k in n for k in ("dsra", "mmr", "reserve")):
             return "Reserve creations", "narration: reserve"

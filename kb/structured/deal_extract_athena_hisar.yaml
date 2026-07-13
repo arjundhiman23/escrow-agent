@@ -1,0 +1,157 @@
+# Structured deal extract — Athena Hisar Solar Power Private Limited (AHSPPL)
+# Verified against source pages: Sanction Note/CAM (native text, CAM592404240018) +
+# Escrow/Trust and Retention Account Agreement (49pp, poor-quality embedded text layer — read with care).
+deal:
+  borrower: Athena Hisar Solar Power Private Limited (AHSPPL)
+  sponsor: Actis Green Gen Limited (Actis) — via Actis GreenLife Ltd / Actis Long Life Infrastructure Fund (ALLIF)
+  lender: Axis Bank Limited (Account Bank); Axis Trustee Services Limited (Lenders' Agent / Security Trustee)
+  authority: SECI (Solar Energy Corporation of India) — PPA counterparty (power off-taker), not a road-sector Authority
+  facility: Rupee Term Loan of Rs. 257.04 crore (refinancing of existing facility)
+  facility_amount: Rs. 257.04 crore
+  project: >
+    50 MW (AC) / 72.41 MW (DC) operational solar power project, Ananthapuram Solar Park, Kadapa,
+    Andhra Pradesh (DC:AC ratio 1.45:1); one of four operational solar assets acquired by Actis from
+    ACME Solar Holdings Limited on 06-Aug-2020
+  concession_agreement_signed: "2018-07-21"   # COD / commercial operations date (no concession agreement; PPA-based)
+  cam_ref: CAM592404240018
+  note_on_structure: >
+    This is a solar PPA-revenue deal (SECI off-take), not an NHAI road HAM project — no Concession
+    Agreement or Authority annuity; revenue is power-sale receipts from SECI plus deviation settlement
+    (POSOCO) and other income. Refinancing of 4 SECI/RUMSL solar projects; Hisar is one of them.
+
+# ---------------------------------------------------------------- CATRA debit side
+# Trust and Retention Account Agreement, Section 3.2(a) — Operating Account withdrawal order of priority
+# (Monthly Distribution Date). Escrow Agreement PDF has a poor-quality embedded text layer (garbled OCR-like
+# text, e.g. "AGREEf,IEI{T") — clause content below was read carefully allowing for these artifacts.
+order_of_priority:
+  - {priority: 1, code: STAT_DUES,  item: i,   name: Tax and Statutory Dues,      sub_account: Tax and Statutory Dues Account,
+     agreement_item: "3.2(a)(i)", desc: Taxes due and payable during the month per Annual Budget}
+  - {priority: 2, code: OM_EXP,     item: ii,  name: Operation and Maintenance,   sub_account: Operation and Maintenance Account,
+     agreement_item: "3.2(a)(ii)", desc: O&M Costs due and payable during the month per Annual Budget}
+  - {priority: 3, code: WC_FACILITY, item: iii, name: WC Facility Service (Required Balance), sub_account: WC Facility Service Account,
+     agreement_item: "3.2(a)(iii)", desc: Amount necessary to maintain Required Balance for Working Capital Facilities}
+  - {priority: 4, code: DEBT_SERV,  item: iv,  name: Debt Service (Required Balance), sub_account: Debt Service Account,
+     agreement_item: "3.2(a)(iv)", desc: Amount necessary to maintain Required Balance in the Debt Service Account}
+  - {priority: 5, code: GEN_RESERVE, item: v,  name: General Reserve,             sub_account: General Reserve Account,
+     agreement_item: "3.2(a)(v)", desc: Amount necessary to maintain the General Reserve per Notice of Debt Service}
+  - {priority: 6, code: CORP_OH,    item: vi,  name: Corporate Overheads,         sub_account: Corporate Overheads Account,
+     agreement_item: "3.2(a)(vi)", desc: Amount necessary to maintain Corporate Overheads per Lenders' instruction}
+  - {priority: 7, code: SURPLUS,    item: vii, name: Surplus (residual),          sub_account: Surplus Account,
+     agreement_item: "3.2(a)(vii)", desc: All remaining monies, further utilised per the Surplus Account's own order of priority (3.2(i))}
+
+# Surplus Account's own further order of priority (clause 3.2(i)) — DSCR-triggered cash trap/sweep mechanism,
+# materially more complex than the road-HAM deals' flat waterfall:
+sanction_waterfall:
+  - {step: 1, text: Deposit into the Other Entity Account, if required by the Lenders' Agent (Intercompany Agreement), maps_to: OTHER_ENTITY}
+  - {step: 2, text: "If trailing 12-month Group DSCR < 1.10: 100% of cash surplus mandatorily applied to loan prepayment (no premium)", maps_to: CASH_SWEEP}
+  - {step: 3, text: "If Group DSCR >=1.15 but Borrower DSCR <1.10: surplus trapped into the Cash Trap Account (1st/2nd testing)", maps_to: CASH_TRAP}
+  - {step: 4, text: "If Borrower DSCR remains <1.10 at 3rd testing (after 2 trap cycles): trapped amounts moved to Cash Sweep Account", maps_to: CASH_SWEEP}
+  - {step: 5, text: "If DSCR recovers >=1.10 at 2nd testing: trapped amounts released back to Surplus Account for Borrower's use, incl. Restricted Payments subject to Restricted Payment Conditions", maps_to: DISTRIB}
+
+waterfall_divergences:
+  - This deal has a materially different (and more complex) waterfall than a flat priority-of-payments list —
+    the Surplus Account applies a trailing-12-month DSCR test (Group DSCR and Borrower-level DSCR separately)
+    to decide between mandatory prepayment, cash trapping, or release for distribution. Confirm the exact
+    DSCR thresholds/testing cadence (RPC = Restricted Payment Conditions testing cycle) against the Common
+    Loan Agreement before treating any Cash Trap / Cash Sweep balance as a breach.
+  - The bank statement shows additional named sub-accounts not fully described in the extracted Escrow
+    Agreement pages — ACME Solar Liabilities Account (likely residual from the 2020 acquisition from ACME
+    Solar Holdings), Insurance and Compensation Proceeds Account, Enforcement Proceeds Account — treat
+    transactions there as out of scope for the main Operating Account CATRA analysis.
+
+# ---------------------------------------------------------------- CATRA credit side
+permitted_deposits:
+  - {code: DISBURSE,   item: a, name: Facility disbursements (refinancing proceeds)}
+  - {code: POWER_SALE, item: b, name: Power sale proceeds from SECI (PPA off-take) and deviation settlement (POSOCO)}
+  - {code: OTHER_INC,  item: c, name: Other income incl. VGF (viability gap funding), carbon credit / REC revenue (e.g. EKI Energy), bank deposit interest}
+  - {code: INV_INCOME, item: d, name: Investment redemption proceeds (Flexi/Term Deposit maturity transfers back to Operating Account)}
+  - {code: INTERCO,    item: e, name: Inter-company transfers (from other Athena Group SPVs, e.g. Athena Jaipur Solar)}
+  - {code: INSURANCE,  item: f, name: Insurance Proceeds / General Compensation (routed to Insurance and Compensation Proceeds Account per 3.2 proviso)}
+  - {code: OTHER_DEP,  item: g, name: Other amounts not specifically identified for a particular Account}
+
+# ---------------------------------------------------------------- covenants
+covenants:
+  - id: CV1
+    source: Trust and Retention Account Agreement, Debt Service Reserve definition + Sanction Note refinancing terms table
+    rule: >
+      Debt Service Reserve Amount = Original DSRA + Top-Up DSRA. Proposed refinancing terms: 1 quarter cash
+      DSRA (down from 2 quarters previously), plus 1 quarter incremental cash/BG DSRA if DSCR falls below
+      1.15 for 2 consecutive Restricted Payment Condition (RPC) testing cycles. Original DSRA must be cash
+      at all times until Final Settlement Date; Top-Up DSRA may be a bank guarantee (renewed 30 days before expiry).
+  - id: CV2
+    source: Trust and Retention Account Agreement, Surplus Account withdrawal clause 3.2(i)
+    rule: >
+      Surplus Account funds flow to Other Entity Account first (if instructed), then are subject to a
+      trailing-12-month DSCR test: Group DSCR <1.10 triggers mandatory 100% prepayment; Group DSCR >=1.15
+      with Borrower DSCR <1.10 traps cash (1st/2nd testing) into the Cash Trap Account; continued shortfall
+      at 3rd testing moves trapped amounts to Cash Sweep Account; DSCR recovery releases trapped amounts
+      back to Surplus Account, from where Restricted Payments require satisfying Restricted Payment Conditions.
+  - id: CV3
+    source: Trust and Retention Account Agreement 3.2(a) proviso (B)
+    rule: >
+      Restricted Payments from Disbursement proceeds (not just operating surplus) are permitted without
+      testing Restricted Payment Conditions if: (i) all Previous Lenders' dues discharged in full,
+      (ii) DSRA created and maintained in full, (iii) no continuing Default, and (iv) Total Debt:Equity
+      does not exceed 80:20.
+  - id: CV4
+    source: Sanction Note refinancing terms table
+    rule: Door-to-door tenor ~16 years (15y11m for 3 SECI Projects / 16y5m for RUMSL Project); all corporate guarantees to be removed in the refinanced structure in favour of a cash-collateralised structure via Intercompany Agreement (ICA) and escrow.
+  - id: CV5
+    source: Trust and Retention Account Agreement 3.2(b)
+    rule: If Tax and Statutory Dues Account has a funding deficiency, the Account Bank draws first from the Surplus Account, then (with Lenders' Agent approval) other Accounts under 3.2(c)-(e), provided such tax payment is within the Annual Budget.
+
+# ---------------------------------------------------------------- TRA source (Sanction Note DSCR-calculation table, native text)
+# Rs. crore. This CAM presents projections in DSCR-calculation format (EBITDA, VGF/GST adjustments, interest,
+# principal, DSCR) rather than a full P&L with depreciation/PBT/PAT — those lines are left absent below and
+# will be derived/zero-filled by the normalization layer, which is expected here (see notes).
+projected_pnl:
+  fye: ['FY25','FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35','FY36','FY37','FY38','FY39','FY40']
+  income:
+    EBITDA (as reported): [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
+  income_total:           [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
+  opex: {}
+  opex_total:             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  ebitda:                 [40.23, 39.54, 38.83, 38.22, 37.34, 37.55, 36.73, 36.04, 35.21, 34.49, 32.76, 32.12, 31.23, 30.44, 29.62, 29.89]
+  interest:               [21.81, 21.24, 20.18, 19.12, 17.89, 16.60, 15.20, 13.79, 12.30, 10.80, 9.27, 7.72, 6.06, 4.33, 2.59, 0.98]
+  depreciation:           [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  # principal repayment captured under balance sheet 'cmltd' (matches how tra_builder reads scheduled principal)
+  pbt: []
+  csr: []
+  tax: []
+  pat: []
+
+projected_balance_sheet:
+  fye: ['FY25','FY26','FY27','FY28','FY29','FY30','FY31','FY32','FY33','FY34','FY35','FY36','FY37','FY38','FY39','FY40']
+  cmltd: [9.74, 12.08, 12.34, 13.11, 14.14, 15.68, 16.61, 16.45, 16.97, 17.48, 17.48, 18.51, 19.28, 20.57, 18.77, 17.84]
+  long_term_debt: []
+  dsra_fund: []
+  mmr_fund: []
+  working_capital_reserve: []
+  cash_and_bank: []
+
+annuity_terms:
+  structure: >
+    Not annuity-based (solar PPA revenue, not NHAI HAM annuity). Revenue is power-sale proceeds from SECI
+    under PPA plus deviation settlement income (POSOCO) and viability gap funding (VGF).
+  first_annuity: Not applicable — COD (commercial operations) was 21-07-2018; refinancing door-to-door tenor ~16 years from refinancing date
+  termination_payment: Not applicable (PPA-based, no NHAI-style termination payment identified in extracted pages)
+  interest_on_annuity: Not applicable
+
+notes:
+  - This CAM presents projections in DSCR-calculation format (EBITDA / VGF adjustment / GST principal
+    add-back / cash available for debt service / interest+BG fee / principal repayment / DSCR), not a full
+    Income Statement — no explicit depreciation, PBT, PAT, or projected Balance Sheet (DSRA/reserve fund
+    balances) table was found in the pages reviewed. The normalization layer will derive PBT/PAT as
+    EBITDA-minus-interest with depreciation defaulted to 0, which understates real PAT (ignores D&A and
+    tax) — treat the TRA "PAT" figures in generated reports as indicative only, not the audited figure.
+  - Escrow Agreement PDF has a degraded embedded text layer (e.g. "AGREEf,IEI{T" for "AGREEMENT", "SOI.AR"
+    for "SOLAR") — clauses were read allowing for these OCR-like artifacts; if precise clause wording is
+    needed for a legal position, re-verify against the original scanned images rather than this extract.
+  - DSRA specific quantum (exact Rs. crore for 1-quarter Original DSRA + Top-Up trigger) was not located in
+    the extracted CAM/Agreement pages — only the "1 quarter cash DSRA" policy description. Confirm the cash
+    figure from the Common Loan Agreement or DSRA calculation annexure.
+  - This is a refinancing of 4 existing SECI/RUMSL solar projects; only Athena Hisar's own figures were
+    extracted here — the other 3 projects' CAM sections were not reviewed.
+  - Bank statement shows a "Cash Trap Account 1" and "Cash Trap Account 2" (matching the 1st/2nd DSCR
+    testing trap mechanism in CV2) plus a separate "Cash Sweep Account" — useful cross-check once enough
+    quarters of data exist to observe a DSCR-triggered trap/sweep event.

@@ -237,3 +237,25 @@ Two real bugs surfaced while onboarding the second deal (Kallagam-Meensurutti Hi
    attribute assignment instead, which does clear properly. Also broadened the investment-redemption keyword
    rule in `bank_ingest.py` to match mutual-fund counterparty names without requiring the word "redemption"
    in the narration, which cut Kallagam's review queue from 10/31 to 0/31 transactions.
+
+## Third deal onboarded: Athena Hisar Solar Power (this session)
+
+Onboarded a structurally different deal type — a solar PPA-revenue asset (SECI off-take, no NHAI/Concession
+Agreement) rather than a road HAM project — which surfaced a few more classification gaps, now fixed:
+
+- Added keyword matches for "cash sweep" (-> Debt servicing, per this deal's own bank remark convention),
+  "stat pay" abbreviation (-> Statutory Payments), and "inter company transfer" on the credit side (a real
+  ATSL category that was previously always defaulting to 0 in every prior deal since nothing matched it).
+- Generalized the reserve-check labels in the actuals Final Analysis away from road-deal-specific "WCR/DSRA/MMRA"
+  wording to deal-agnostic phrasing, since this deal's actual reserve structure (DSRA + DSCR-triggered Cash
+  Trap/Cash Sweep accounts) doesn't use those names.
+- `kb/structured/deal_extract_athena_hisar.yaml` also demonstrates the profile schema's flexibility: this
+  deal's Sanction Note presents projections in DSCR-calculation format (EBITDA/interest/principal/DSCR) rather
+  than a full P&L — depreciation, PBT, PAT and a projected Balance Sheet were left absent, and the
+  normalization layer derives placeholders + explicit notes rather than requiring every field to be present.
+
+Verified end-to-end via the deal-scoped API: 375 transactions, 4 quarters, balance integrity holds throughout,
+verdict COMPLIANT, matching a manual reconciliation exactly (₹126.82cr inflow / ₹120.80cr outflow).
+
+All three onboarded deals (Kanpur Lucknow Expressway, Kallagam-Meensurutti Highway, Athena Hisar Solar Power)
+re-verified together in one regression pass to confirm no cross-deal regressions from any fix in this session.

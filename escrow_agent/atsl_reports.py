@@ -275,7 +275,7 @@ def build_final_analysis_actuals(summary, txns, recon, out_path, deal_name="Borr
                    "COMPLIANT",
                    f"Placements Rs. {pi_out/CR:.2f} cr; redemption proceeds Rs. {pi_in/CR:.2f} cr returned to the account"])
     reserve_total = sum(summary[q]["debits"]["Reserve creations"] for q in qs)
-    checks.append(["Reserve creation (WCR / DSRA / MMRA)",
+    checks.append(["Reserve creation (deal-specific reserves, e.g. DSRA/WCR/MMRA/General Reserve)",
                    "COMPLIANT" if reserve_total > 0 else "WATCH",
                    (f"Reserve creations totalling Rs. {reserve_total/CR:.2f} cr observed across {qs_label}" if reserve_total > 0 else
                     f"Reserve creations = 0 across {qs_label} — if the deal has not yet reached COD/DOCC this is expected; "
@@ -352,7 +352,7 @@ def build_final_analysis_actuals(summary, txns, recon, out_path, deal_name="Borr
     _h(doc, "6. Watch Items")
     watch_items = []
     if reserve_total == 0:
-        watch_items.append("Reserve creation (WCR/DSRA/MMR) has not yet begun — if this deal is approaching COD/DOCC, "
+        watch_items.append("Reserve creation (deal-specific reserves per its covenants) has not yet begun — if this deal is approaching COD/DOCC or an equivalent funding trigger, "
                            "confirm the reserve funding triggers and sizing against the deal's covenants before the next run.")
     if deal_covenants:
         watch_items.append(f"{len(deal_covenants)} covenant(s) from the deal profile are not yet verifiable from "
