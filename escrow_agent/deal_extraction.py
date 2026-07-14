@@ -12,7 +12,7 @@ import json
 from escrow_agent.pdf_render import pdf_to_images
 from escrow_agent.ai_usage import UsageTracker
 
-MAX_PAGES_PER_DOC = 60   # generous cap; flags truncation rather than failing silently
+MAX_PAGES_PER_DOC = 100   # generous cap; flags truncation rather than failing silently
 
 SCHEMA_NOTE = """Return ONLY a single JSON object (no prose, no markdown fences) with this shape
 (omit any top-level key you find no evidence for — do not invent values):

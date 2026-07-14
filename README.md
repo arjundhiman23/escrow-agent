@@ -376,3 +376,11 @@ result is saved to storage the moment *it* finishes, a restart only costs whatev
 not the whole batch — previously, a single combined call meant a restart lost all progress across all 3
 documents, which is the most likely explanation for deals appearing to "reset" during active testing while
 this session was pushing frequent fixes.
+
+## Page cap raised to 100 (this session)
+
+`MAX_PAGES_PER_DOC` in `deal_extraction.py` raised from 60 to 100, so larger Sanction Notes/CAMs (e.g. a
+65-page document) are no longer truncated before extraction. If a document still fails with something other
+than a JSON-parsing/truncation error (e.g. a timeout on very large requests), that's a different failure
+mode from the page-cap or token-limit issues fixed earlier this session — check the document's own
+extraction log in the console for the specific error before assuming it's page-count related.
