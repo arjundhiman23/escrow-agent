@@ -400,3 +400,19 @@ If this ever shows "Ephemeral storage" in a deployed environment, that is the en
 recurring "deal vanished" reports — S3_BUCKET is either not set in that environment or not being read
 correctly, and no amount of extraction-flow fixes will change that; the fix is purely an env var check on
 Render's Environment tab.
+
+## Fix: profile normalization crashed on legitimate null values in AI extraction (this session)
+
+A live extraction (Athena Hisar's Sanction Note) crashed with `TypeError: unsupported operand type(s) for
++: 'float' and 'NoneType'`. The AI extraction had legitimately returned `null` for a year it couldn't
+determine a P&L line item for (the same thing happened in the manually-built Athena profile — FY40's PAT is
+genuinely blank in that CAM) — but `profile_normalize.py`'s summation logic assumed every entry in a year-
+series was always a number, and crashed on the first `None` it tried to add.
+
+Rewrote the numeric-series handling to be defensive across the board, not just at the one crash site: every
+year-series (income/opex lines, income_total, interest, depreciation, ebitda, pbt, csr, tax, pat, and every
+balance-sheet line) now runs through a sanitizer that coerces `None` and non-numeric entries to 0.0 and pads/
+truncates to the correct length against `fye` — handling three real failure modes observed across different
+deals' messy AI output: null entries, wrong-length lists, and non-numeric placeholder values (e.g. "N/A").
+Verified against the exact reported crash plus three related synthetic cases, and re-ran the full 3-deal
+regression to confirm the already-clean Kallagam/Athena profiles are unaffected.

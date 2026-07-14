@@ -9,6 +9,30 @@ def _zeros(n):
     return [0.0] * n
 
 
+def _num(x):
+    """Coerce a single value to float, treating None/non-numeric as 0.0.
+    The AI extraction legitimately returns null for a year it couldn't
+    determine a figure for — that's expected, not an error, so it must not
+    crash arithmetic downstream."""
+    if x is None:
+        return 0.0
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _series(vals, n):
+    """Sanitize a year-series to exactly length n, each entry a safe float.
+    Handles None entries, wrong length (AI returned more/fewer years than
+    fye), and non-numeric entries — all observed failure modes across
+    different deals' messy AI extraction output."""
+    vals = list(vals or [])
+    out = [_num(v) for v in vals[:n]]
+    out += [0.0] * (n - len(out))
+    return out
+
+
 def normalize_profile(raw: dict) -> dict:
     notes = list(raw.get("notes", []))
     p = {
@@ -41,28 +65,38 @@ def normalize_profile(raw: dict) -> dict:
                            "CATRA debit categories could not be generated; upload/re-extract.")
     p["waterfall_divergences"] = divergences or ["None identified."]
 
-    # --- projected P&L: ensure every field the builders index exists ---
+    # --- projected P&L: ensure every field the builders index exists, and every
+    # numeric series is a clean, fixed-length list of floats (AI extraction can
+    # legitimately return null for years it couldn't determine, or a
+    # mismatched-length list against fye — both must degrade gracefully, not crash) ---
     raw_pnl = raw.get("projected_pnl") or {}
-    fye = raw_pnl.get("fye") or []
+    fye = list(raw_pnl.get("fye") or [])
     n = len(fye)
     if n == 0:
         notes.append("No projected P&L was extracted from the Sanction Note/CAM — "
                      "TRA analysis and reserve-adequacy checks will be empty until this is added.")
-    income = raw_pnl.get("income") or {}
-    opex = raw_pnl.get("opex") or {}
-    income_total = raw_pnl.get("income_total") or (
+
+    income_raw = raw_pnl.get("income") or {}
+    opex_raw = raw_pnl.get("opex") or {}
+    income = {k: _series(v, n) for k, v in income_raw.items()}
+    opex = {k: _series(v, n) for k, v in opex_raw.items()}
+
+    income_total = _series(raw_pnl.get("income_total"), n) if raw_pnl.get("income_total") else (
         [round(sum(vals[i] for vals in income.values()), 2) for i in range(n)] if income else _zeros(n))
-    opex_total = raw_pnl.get("opex_total") or (
+    opex_total = _series(raw_pnl.get("opex_total"), n) if raw_pnl.get("opex_total") else (
         [round(sum(vals[i] for vals in opex.values()), 2) for i in range(n)] if opex else _zeros(n))
-    interest = raw_pnl.get("interest") or _zeros(n)
+    interest = _series(raw_pnl.get("interest"), n) if raw_pnl.get("interest") else _zeros(n)
     if not raw_pnl.get("interest") and n:
         notes.append("Interest line not extracted from projected P&L — defaulted to 0; DSRA/WCR checks will read as trivially compliant until corrected.")
-    depreciation = raw_pnl.get("depreciation") or _zeros(n)
-    ebitda = raw_pnl.get("ebitda") or [round(income_total[i] - opex_total[i], 2) for i in range(n)]
-    pbt = raw_pnl.get("pbt") or [round(ebitda[i] - interest[i] - depreciation[i], 2) for i in range(n)]
-    csr = raw_pnl.get("csr") or _zeros(n)
-    tax = raw_pnl.get("tax") or _zeros(n)
-    pat = raw_pnl.get("pat") or [round(pbt[i] - csr[i] - tax[i], 2) for i in range(n)]
+    depreciation = _series(raw_pnl.get("depreciation"), n) if raw_pnl.get("depreciation") else _zeros(n)
+    ebitda = _series(raw_pnl.get("ebitda"), n) if raw_pnl.get("ebitda") else \
+        [round(income_total[i] - opex_total[i], 2) for i in range(n)]
+    pbt = _series(raw_pnl.get("pbt"), n) if raw_pnl.get("pbt") else \
+        [round(ebitda[i] - interest[i] - depreciation[i], 2) for i in range(n)]
+    csr = _series(raw_pnl.get("csr"), n) if raw_pnl.get("csr") else _zeros(n)
+    tax = _series(raw_pnl.get("tax"), n) if raw_pnl.get("tax") else _zeros(n)
+    pat = _series(raw_pnl.get("pat"), n) if raw_pnl.get("pat") else \
+        [round(pbt[i] - csr[i] - tax[i], 2) for i in range(n)]
     p["projected_pnl"] = {
         "fye": fye, "income": income, "opex": opex, "income_total": income_total, "opex_total": opex_total,
         "ebitda": ebitda, "interest": interest, "depreciation": depreciation, "pbt": pbt,
@@ -74,7 +108,7 @@ def normalize_profile(raw: dict) -> dict:
     bs = {"fye": fye}
     for key in ("long_term_debt", "cmltd", "dsra_fund", "mmr_fund", "working_capital_reserve", "cash_and_bank"):
         if raw_bs.get(key):
-            bs[key] = raw_bs[key]
+            bs[key] = _series(raw_bs[key], n)
         else:
             bs[key] = _zeros(n)
             if n:
