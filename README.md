@@ -339,3 +339,17 @@ for that deal) is now also correctly bucketed; Kanpur Lucknow unaffected (no ref
 statements, so no change in behaviour there). The only remaining unresolved gap against Athena's bank output
 is the Rs. 70,000 Internal Company Transfer item in Q3/Q4 whose counterparty still isn't identifiable from
 the visible narration or the bank's own Remarks column.
+
+## Fix: deal extraction was silently truncating every response (this session)
+
+A live deployment run (Athena Hisar-style deal) showed all 3 document-extraction calls failing with
+"did not return valid JSON". The token usage gave it away: 12,000 total output tokens across 3 calls =
+exactly 4,000 per call, matching `max_tokens=4000` in `deal_extraction.py` precisely — every single
+response was being cut off mid-JSON before the model could finish writing it. The rich extraction schema
+(waterfall priorities, covenants, 15+ years of P&L line items, notes) simply needs more room than that once
+actually populated.
+
+Raised `max_tokens` to 16000. Also added explicit diagnostics: if a response is ever truncated again (very
+large document, or a future schema change), the profile's notes will say so directly ("response was cut off
+at the N-token limit") instead of the generic "did not return valid JSON", so it's immediately diagnosable
+from the console rather than requiring a token-count investigation like this one.

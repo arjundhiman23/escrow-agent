@@ -68,15 +68,18 @@ def extract_document(client, model, doc_kind, pdf_bytes, tracker: UsageTracker, 
     content = [{"type": "image", "source": {"type": "base64", "media_type": im["media_type"],
                                             "data": im["base64"]}} for im in images]
     content.append({"type": "text", "text": DOC_PROMPTS[doc_kind]})
-    resp = client.messages.create(model=model, max_tokens=4000, messages=[{"role": "user", "content": content}])
+    resp = client.messages.create(model=model, max_tokens=16000, messages=[{"role": "user", "content": content}])
     tracker.record("deal_extraction", model, resp.usage)
     text = "".join(b.text for b in resp.content if b.type == "text").strip()
     text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    hit_token_limit = getattr(resp, "stop_reason", None) == "max_tokens"
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
-        parsed = {"notes": [f"AI extraction for {doc_kind} did not return valid JSON — raw output saved for review"],
-                  "_raw": text}
+        reason = (f"response was cut off at the {resp.usage.output_tokens}-token limit before the JSON "
+                  f"could be completed — increase max_tokens" if hit_token_limit else
+                  "did not return valid JSON for an unrelated reason — raw output saved for review")
+        parsed = {"notes": [f"AI extraction for {doc_kind} failed: {reason}"], "_raw": text}
     if truncated:
         parsed.setdefault("notes", []).append(
             f"Document has {n_pages} pages; only the first {len(images)} were processed — "
