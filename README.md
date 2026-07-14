@@ -353,3 +353,26 @@ Raised `max_tokens` to 16000. Also added explicit diagnostics: if a response is 
 large document, or a future schema change), the profile's notes will say so directly ("response was cut off
 at the N-token limit") instead of the generic "did not return valid JSON", so it's immediately diagnosable
 from the console rather than requiring a token-count investigation like this one.
+
+## Per-document extraction (this session)
+
+Document upload/extraction is now fully independent per document, instead of one combined action waiting
+for all 3 files. Each of the three slots (Escrow Agreement / Sanction Letter / Sanction Note) has its own
+"Choose file & extract" action, its own status badge (extracting/extracted/failed), its own scoped log, and
+polls independently — uploading document 2 does not touch document 1's completed state, and the profile
+card updates in place (no full page reload, no scroll jump) as each document finishes.
+
+New endpoints:
+- `POST /api/deals/{id}/documents/{kind}/extract` — upload + extract exactly one document
+- `GET /api/deals/{id}/documents/{kind}/status` — poll target for that document's own widget
+
+Each document's raw extraction result is now stored separately (`profile_parts` in the deal's meta) and
+re-merged into the confirmed profile every time any one document finishes — so documents can be uploaded in
+any order, re-extracted individually without re-running the others, and a deal's profile always reflects
+whichever documents have completed so far.
+
+This also makes extraction resilient to a mid-run restart (e.g. a Render redeploy): since each document's
+result is saved to storage the moment *it* finishes, a restart only costs whatever document was in flight,
+not the whole batch — previously, a single combined call meant a restart lost all progress across all 3
+documents, which is the most likely explanation for deals appearing to "reset" during active testing while
+this session was pushing frequent fixes.

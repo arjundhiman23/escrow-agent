@@ -83,78 +83,112 @@ def delete_deal(deal_id: str):
 DOC_KINDS = ("escrow_agreement", "sanction_letter", "sanction_note")
 
 
-@app.post("/api/deals/{deal_id}/extract")
-async def upload_and_extract(
-    deal_id: str,
-    escrow_agreement: Optional[UploadFile] = File(None),
-    sanction_letter: Optional[UploadFile] = File(None),
-    sanction_note: Optional[UploadFile] = File(None),
-):
-    deal_id = _safe(deal_id)
+@app.post("/api/deals/{deal_id}/documents/{kind}/extract")
+async def upload_and_extract_one(deal_id: str, kind: str, file: UploadFile = File(...)):
+    """Upload and extract exactly one document (escrow_agreement | sanction_letter |
+    sanction_note). Independent of the other two — each can be uploaded and
+    extracted separately, in any order, and its result is merged into the deal's
+    existing profile without disturbing what other documents already contributed.
+    Saving each document's result as soon as it individually completes also means
+    a restart/redeploy mid-extraction only costs the one document in flight, not
+    the whole batch."""
+    deal_id, kind = _safe(deal_id), _safe(kind)
+    if kind not in DOC_KINDS:
+        raise HTTPException(400, f"kind must be one of {DOC_KINDS}")
     try:
         meta = read_deal(ST, deal_id)
     except Exception:
         raise HTTPException(404, "deal not found")
 
-    uploads = {"escrow_agreement": escrow_agreement, "sanction_letter": sanction_letter,
-              "sanction_note": sanction_note}
-    if not any(uploads.values()):
-        raise HTTPException(400, "upload at least one document")
+    name = _safe(file.filename)
+    data = await file.read()
+    ST.put_bytes(f"deals/{deal_id}/documents/{kind}.pdf", data)
 
     documents = dict(meta.get("documents", {}))
-    for kind, up in uploads.items():
-        if up is not None and up.filename:
-            name = _safe(up.filename)
-            data = await up.read()
-            ST.put_bytes(f"deals/{deal_id}/documents/{kind}.pdf", data)
-            documents[kind] = name
-
+    documents[kind] = name
     meta["documents"] = documents
-    meta["status"] = "extracting"
+    doc_status = dict(meta.get("document_status", {}))
+    doc_status[kind] = "extracting"
+    meta["document_status"] = doc_status
+    if meta["status"] == "new":
+        meta["status"] = "extracting"
     write_deal(ST, deal_id, meta)
 
-    threading.Thread(target=_run_extraction, args=(deal_id,), daemon=True).start()
+    threading.Thread(target=_run_single_extraction, args=(deal_id, kind), daemon=True).start()
     return {"ok": True, "status": "extracting"}
 
 
-def _run_extraction(deal_id):
+@app.get("/api/deals/{deal_id}/documents/{kind}/status")
+def document_extract_status(deal_id: str, kind: str):
+    """Lightweight poll target for a single document's extraction widget —
+    lets the frontend refresh just that one card instead of the whole deal."""
+    deal_id, kind = _safe(deal_id), _safe(kind)
+    try:
+        meta = read_deal(ST, deal_id)
+    except Exception:
+        raise HTTPException(404, "deal not found")
+    return {
+        "status": (meta.get("document_status") or {}).get(kind, "new"),
+        "log": (meta.get("document_log") or {}).get(kind, []),
+        "profile": meta.get("profile"),
+        "deal_status": meta.get("status"),
+    }
+
+
+def _run_single_extraction(deal_id, kind):
     meta = read_deal(ST, deal_id)
+    doc_status = dict(meta.get("document_status", {}))
+    doc_log = dict(meta.get("document_log", {}))
     try:
         if not os.environ.get("ANTHROPIC_API_KEY"):
-            meta["status"] = "review"
-            meta["profile"] = normalize_profile({})
-            meta["extraction_log"] = meta.get("extraction_log", []) + [
-                f"[{_now()}] ANTHROPIC_API_KEY not set — skipping AI extraction. "
-                f"An empty profile has been created; fill it in manually before confirming."]
+            doc_status[kind] = "done"
+            doc_log[kind] = doc_log.get(kind, []) + [
+                f"[{_now()}] ANTHROPIC_API_KEY not set — skipping AI extraction for this document."]
+            meta["document_status"] = doc_status
+            meta["document_log"] = doc_log
+            if not meta.get("profile"):
+                meta["profile"] = normalize_profile({})
+                meta["status"] = "review"
             write_deal(ST, deal_id, meta)
             return
 
-        documents = {}
-        for kind in DOC_KINDS:
-            key = f"deals/{deal_id}/documents/{kind}.pdf"
-            if ST.exists(key):
-                documents[kind] = ST.get_bytes(key)
-
-        from escrow_agent.deal_extraction import run_extraction
+        from escrow_agent.deal_extraction import run_single_extraction, merge_profiles
         model = os.environ.get("AI_MODEL_EXTRACTION", "claude-sonnet-5")
-        merged, usage = run_extraction(documents, model=model)
+        pdf_bytes = ST.get_bytes(f"deals/{deal_id}/documents/{kind}.pdf")
+        result, usage = run_single_extraction(kind, pdf_bytes, model=model)
+
+        profile_parts = dict(meta.get("profile_parts", {}))
+        profile_parts[kind] = result
+        merged = merge_profiles(profile_parts)
         profile = normalize_profile(merged)
 
-        meta["profile"] = profile
-        meta["status"] = "review"
-        meta["ai_usage"] = usage
-        meta["extraction_log"] = meta.get("extraction_log", []) + [
+        # accumulate token usage across all per-document calls for this deal
+        prior = meta.get("ai_usage") or {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "calls": 0}
+        combined_usage = {
+            "input_tokens": prior.get("input_tokens", 0) + usage["input_tokens"],
+            "output_tokens": prior.get("output_tokens", 0) + usage["output_tokens"],
+            "cost_usd": round(prior.get("cost_usd", 0.0) + usage["cost_usd"], 6),
+            "calls": prior.get("calls", 0) + usage["calls"],
+        }
+
+        doc_status[kind] = "done"
+        doc_log[kind] = doc_log.get(kind, []) + [
             f"[{_now()}] Extraction complete: {usage['calls']} call(s), "
-            f"{usage['input_tokens']} in / {usage['output_tokens']} out tokens, ${usage['cost_usd']:.4f}. "
-            f"{len(profile.get('order_of_priority', []))} waterfall priorities, "
-            f"{len(profile.get('covenants', []))} covenants, "
-            f"{len(profile.get('projected_pnl', {}).get('fye', []))} FY of projections extracted. "
-            f"Review the draft before confirming."]
+            f"{usage['input_tokens']} in / {usage['output_tokens']} out tokens, ${usage['cost_usd']:.4f}."]
+
+        meta["profile_parts"] = profile_parts
+        meta["profile"] = profile
+        meta["ai_usage"] = combined_usage
+        meta["document_status"] = doc_status
+        meta["document_log"] = doc_log
+        meta["status"] = "review"
         write_deal(ST, deal_id, meta)
     except Exception as e:
-        meta["status"] = "extraction_failed"
-        meta["extraction_log"] = meta.get("extraction_log", []) + [
+        doc_status[kind] = "failed"
+        doc_log[kind] = doc_log.get(kind, []) + [
             f"[{_now()}] FAILED: {type(e).__name__}: {e}", traceback.format_exc(limit=3)]
+        meta["document_status"] = doc_status
+        meta["document_log"] = doc_log
         write_deal(ST, deal_id, meta)
 
 

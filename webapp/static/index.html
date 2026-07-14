@@ -253,16 +253,14 @@ async function renderDeal(silent){
 
     <div class="section">
       <h2>Deal documents &amp; CATRA/TRA extraction</h2>
-      <div class="desc">Upload the Sanction Letter, Sanction Note / Credit Approval Memo, and Escrow Agreement. The agent reads them (via AI, vision-based - works on scanned PDFs) and drafts a CATRA waterfall + TRA projection profile for you to review before it's used.</div>
+      <div class="desc">Upload the Sanction Letter, Sanction Note / Credit Approval Memo, and Escrow Agreement — one at a time, in any order. Each is extracted independently the moment it's chosen (via AI, vision-based - works on scanned PDFs), and the draft CATRA waterfall + TRA projection profile below updates as each one finishes.</div>
       <div class="doc-grid" id="doc-grid"></div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button class="btn primary" onclick="triggerExtract()">${Object.keys(deal.documents||{}).length ? 'Re-run extraction' : 'Upload &amp; extract'}</button>
-        ${deal.ai_usage && deal.ai_usage.calls ? `<span class="run-cost">Extraction cost: ${deal.ai_usage.calls} call(s) · ${deal.ai_usage.input_tokens.toLocaleString()} in / ${deal.ai_usage.output_tokens.toLocaleString()} out · <b>$${deal.ai_usage.cost_usd.toFixed(4)}</b></span>` : ''}
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+        ${deal.ai_usage && deal.ai_usage.calls ? `<span class="run-cost">Extraction cost so far: ${deal.ai_usage.calls} call(s) · ${deal.ai_usage.input_tokens.toLocaleString()} in / ${deal.ai_usage.output_tokens.toLocaleString()} out · <b>$${deal.ai_usage.cost_usd.toFixed(4)}</b></span>` : ''}
       </div>
-      ${(deal.extraction_log||[]).length ? `<div class="extract-log">${esc(deal.extraction_log.join('\\n'))}</div>` : ''}
     </div>
 
-    ${deal.profile ? renderProfileSection(deal) : ''}
+    <div id="profile-section-slot">${deal.profile ? renderProfileSection(deal) : ''}</div>
 
     <div class="section">
       <h2>Bank output templates <span style="font-weight:400;color:var(--steel);font-size:12px">- saved once for this deal, reused by every run</span></h2>
@@ -278,7 +276,7 @@ async function renderDeal(silent){
       <div id="runs">${runsResp.runs.length ? runsResp.runs.map(runCard).join('') : '<div class="empty">No runs yet for this deal.</div>'}</div>
     </div>
   `;
-  renderDocGrid(deal.documents || {});
+  renderDocGrid(deal.documents || {}, deal.document_status || {});
   renderTemplateRows();
   window.scrollTo(0, silent ? scrollY : 0);
   runsResp.runs.forEach(r => { if(openLogs.has(r.run_id)) loadRunLog(r.run_id); });
@@ -295,33 +293,77 @@ function renderHome(){
 }
 
 const DOC_LABELS = {escrow_agreement:'Escrow Agreement', sanction_letter:'Sanction Letter', sanction_note:'Sanction Note / CAM'};
-function renderDocGrid(documents){
+let DOC_POLL_TIMERS = {};   // kind -> interval id, so each widget polls independently
+
+function docStatusBadge(status){
+  if(status==='extracting') return '<span class="badge extracting" style="margin-left:8px">extracting…</span>';
+  if(status==='failed') return '<span class="badge extraction_failed" style="margin-left:8px">failed</span>';
+  if(status==='done') return '<span class="badge ready" style="margin-left:8px">extracted</span>';
+  return '';
+}
+
+function renderDocGrid(documents, docStatus){
   const el = $('doc-grid'); if(!el) return;
+  docStatus = docStatus || {};
   el.innerHTML = Object.entries(DOC_LABELS).map(([kind,label])=>{
     const fn = documents[kind];
-    return `<div class="doc-slot ${fn?'has':''}">
-      <div class="dlabel">${label}</div>
+    const status = docStatus[kind];
+    return `<div class="doc-slot ${fn?'has':''}" id="doc-slot-${kind}">
+      <div class="dlabel">${label}${docStatusBadge(status)}</div>
       ${fn ? `<div class="fn">${esc(fn)}</div><a class="view" href="/api/deals/${CURRENT_DEAL}/documents/${kind}" target="_blank">View PDF</a>` : '<div class="none">Not uploaded</div>'}
-      <label class="pick">${fn?'Replace':'Choose file'}<input type="file" accept=".pdf" data-kind="${kind}" onchange="stageDoc(this)"></label>
+      <label class="pick" style="${status==='extracting'?'opacity:.5;pointer-events:none':''}">${fn?'Replace &amp; re-extract':'Choose file &amp; extract'}<input type="file" accept=".pdf" data-kind="${kind}" onchange="uploadAndExtractOne(this)"></label>
+      <div class="extract-log" id="doc-log-${kind}" style="display:${status?'block':'none'};margin-top:8px;max-height:90px"></div>
     </div>`;
   }).join('');
+  // resume polling for any slot already mid-extraction (e.g. after a page reload)
+  Object.entries(docStatus).forEach(([kind,status])=>{ if(status==='extracting') pollDocStatus(kind); });
 }
-let STAGED_DOCS = {};
-function stageDoc(input){
-  STAGED_DOCS[input.dataset.kind] = input.files[0];
-  toast(`${DOC_LABELS[input.dataset.kind]} staged - click "Upload & extract" to run.`);
-}
-async function triggerExtract(){
-  if(!Object.keys(STAGED_DOCS).length) return toast('Choose at least one document file first');
-  const fd = new FormData();
-  for(const [kind,file] of Object.entries(STAGED_DOCS)) fd.append(kind, file);
+
+async function uploadAndExtractOne(input){
+  const kind = input.dataset.kind;
+  const file = input.files[0]; if(!file) return;
+  const fd = new FormData(); fd.append('file', file);
   try{
-    const r = await fetch(`/api/deals/${CURRENT_DEAL}/extract`, {method:'POST', body:fd});
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/documents/${kind}/extract`, {method:'POST', body:fd});
     if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
-    STAGED_DOCS = {};
-    toast('Extraction started - this runs in the background');
-    renderDeal();
+    toast(`${DOC_LABELS[kind]} uploaded — extracting…`);
+    pollDocStatus(kind);
   }catch(e){ toast('Could not start extraction: '+e.message); }
+}
+
+function pollDocStatus(kind){
+  if(DOC_POLL_TIMERS[kind]) clearInterval(DOC_POLL_TIMERS[kind]);
+  const tick = async () => {
+    let d;
+    try{ d = await fetch(`/api/deals/${CURRENT_DEAL}/documents/${kind}/status`).then(r=>r.json()); }catch(e){ return; }
+    const slot = $(`doc-slot-${kind}`); if(!slot) { clearInterval(DOC_POLL_TIMERS[kind]); return; }
+    const labelEl = slot.querySelector('.dlabel');
+    if(labelEl) labelEl.innerHTML = `${DOC_LABELS[kind]}${docStatusBadge(d.status)}`;
+    const logEl = $(`doc-log-${kind}`);
+    if(logEl){ logEl.style.display = 'block'; logEl.textContent = (d.log||[]).join('\n'); }
+    const pickLabel = slot.querySelector('.pick');
+    if(pickLabel) pickLabel.style.cssText = d.status==='extracting' ? 'opacity:.5;pointer-events:none' : '';
+    if(d.status==='done' || d.status==='failed'){
+      clearInterval(DOC_POLL_TIMERS[kind]); delete DOC_POLL_TIMERS[kind];
+      if(d.status==='done') toast(`${DOC_LABELS[kind]} extracted — profile updated`);
+      refreshProfileSectionOnly();
+    }
+  };
+  tick();
+  DOC_POLL_TIMERS[kind] = setInterval(tick, 2500);
+}
+
+async function refreshProfileSectionOnly(){
+  // update only the profile card + deal status badge, without touching scroll position,
+  // the doc-grid widgets (which manage their own state), templates, or the runs list
+  try{
+    const deal = await fetch(`/api/deals/${CURRENT_DEAL}`).then(r=>r.json());
+    const existing = document.querySelector('#profile-section-slot');
+    if(existing){ existing.outerHTML = deal.profile ? `<div id="profile-section-slot">${renderProfileSection(deal)}</div>` : '<div id="profile-section-slot"></div>'; }
+    const badgeHost = document.querySelector('.deal-header .badge');
+    if(badgeHost){ badgeHost.className = `badge ${deal.status}`; badgeHost.textContent = deal.status.replace('_',' '); }
+    loadDeals();
+  }catch(e){}
 }
 
 function renderProfileSection(deal){

@@ -135,3 +135,14 @@ def run_extraction(documents: dict, model="claude-sonnet-5"):
             continue
         parts[kind] = extract_document(client, model, kind, data, tracker)
     return merge_profiles(parts), tracker.summary()
+
+
+def run_single_extraction(doc_kind: str, pdf_bytes: bytes, model="claude-sonnet-5"):
+    """Extract just one document. Returns (partial_result_dict, usage_summary_dict) —
+    for the per-document workflow where each document is uploaded and extracted
+    independently, with its result merged into the deal's existing profile parts."""
+    import anthropic
+    client = anthropic.Anthropic()
+    tracker = UsageTracker()
+    result = extract_document(client, model, doc_kind, pdf_bytes, tracker)
+    return result, tracker.summary()
