@@ -113,12 +113,40 @@ async def upload_and_extract_one(deal_id: str, kind: str, file: UploadFile = Fil
     doc_started = dict(meta.get("document_started_at", {}))
     doc_started[kind] = _now()
     meta["document_started_at"] = doc_started
+    doc_gen = dict(meta.get("document_generation", {}))
+    doc_gen[kind] = doc_gen.get(kind, 0) + 1
+    meta["document_generation"] = doc_gen
+    my_generation = doc_gen[kind]
     if meta["status"] == "new":
         meta["status"] = "extracting"
     write_deal(ST, deal_id, meta)
 
-    threading.Thread(target=_run_single_extraction, args=(deal_id, kind), daemon=True).start()
+    threading.Thread(target=_run_single_extraction, args=(deal_id, kind, my_generation), daemon=True).start()
     return {"ok": True, "status": "extracting"}
+
+
+@app.post("/api/deals/{deal_id}/documents/{kind}/cancel")
+def cancel_extraction(deal_id: str, kind: str):
+    """Mark this document's in-flight extraction as cancelled. The old
+    background thread (if it eventually completes) is generation-stamped, so
+    even if it finishes after this call, its result is discarded rather than
+    overwriting whatever comes next — a later 'Choose file & extract' always
+    wins over an earlier, cancelled attempt."""
+    deal_id, kind = _safe(deal_id), _safe(kind)
+    try:
+        meta = read_deal(ST, deal_id)
+    except Exception:
+        raise HTTPException(404, "deal not found")
+    doc_status = dict(meta.get("document_status", {}))
+    if doc_status.get(kind) != "extracting":
+        raise HTTPException(400, "this document is not currently extracting")
+    doc_status[kind] = "failed"
+    doc_log = dict(meta.get("document_log", {}))
+    doc_log[kind] = doc_log.get(kind, []) + [f"[{_now()}] Cancelled by user."]
+    meta["document_status"] = doc_status
+    meta["document_log"] = doc_log
+    write_deal(ST, deal_id, meta)
+    return {"ok": True, "status": "failed"}
 
 
 @app.get("/api/deals/{deal_id}/documents/{kind}/status")
@@ -139,12 +167,20 @@ def document_extract_status(deal_id: str, kind: str):
     }
 
 
-def _run_single_extraction(deal_id, kind):
+def _run_single_extraction(deal_id, kind, generation):
+    def _still_current(m):
+        return (m.get("document_generation") or {}).get(kind) == generation
+
     meta = read_deal(ST, deal_id)
     doc_status = dict(meta.get("document_status", {}))
     doc_log = dict(meta.get("document_log", {}))
     try:
         if not os.environ.get("ANTHROPIC_API_KEY"):
+            meta = read_deal(ST, deal_id)   # re-read: a cancel may have landed while we were starting up
+            if not _still_current(meta):
+                return
+            doc_status = dict(meta.get("document_status", {}))
+            doc_log = dict(meta.get("document_log", {}))
             doc_status[kind] = "done"
             doc_log[kind] = doc_log.get(kind, []) + [
                 f"[{_now()}] ANTHROPIC_API_KEY not set — skipping AI extraction for this document."]
@@ -160,6 +196,15 @@ def _run_single_extraction(deal_id, kind):
         model = os.environ.get("AI_MODEL_EXTRACTION", "claude-sonnet-5")
         pdf_bytes = ST.get_bytes(f"deals/{deal_id}/documents/{kind}.pdf")
         result, usage = run_single_extraction(kind, pdf_bytes, model=model)
+
+        # re-read the deal fresh: this call may have taken minutes, and the user
+        # may have cancelled or started a newer attempt for this same document
+        # in the meantime — a late-arriving result must never clobber that
+        meta = read_deal(ST, deal_id)
+        if not _still_current(meta):
+            return
+        doc_status = dict(meta.get("document_status", {}))
+        doc_log = dict(meta.get("document_log", {}))
 
         profile_parts = dict(meta.get("profile_parts", {}))
         profile_parts[kind] = result
@@ -188,6 +233,11 @@ def _run_single_extraction(deal_id, kind):
         meta["status"] = "review"
         write_deal(ST, deal_id, meta)
     except Exception as e:
+        meta = read_deal(ST, deal_id)
+        if not _still_current(meta):
+            return
+        doc_status = dict(meta.get("document_status", {}))
+        doc_log = dict(meta.get("document_log", {}))
         doc_status[kind] = "failed"
         doc_log[kind] = doc_log.get(kind, []) + [
             f"[{_now()}] FAILED: {type(e).__name__}: {e}", traceback.format_exc(limit=3)]

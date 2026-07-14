@@ -337,12 +337,33 @@ function renderDocGrid(documents, docStatus){
     return `<div class="doc-slot ${fn?'has':''}" id="doc-slot-${kind}">
       <div class="dlabel">${label}${docStatusBadge(status)}</div>
       ${fn ? `<div class="fn">${esc(fn)}</div><a class="view" href="/api/deals/${CURRENT_DEAL}/documents/${kind}" target="_blank">View PDF</a>` : '<div class="none">Not uploaded</div>'}
-      <label class="pick" style="${status==='extracting'?'opacity:.5;pointer-events:none':''}">${fn?'Replace &amp; re-extract':'Choose file &amp; extract'}<input type="file" accept=".pdf" data-kind="${kind}" onchange="uploadAndExtractOne(this)"></label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">
+        <label class="pick" id="pick-${kind}" style="${status==='extracting'?'opacity:.5;pointer-events:none':''}">${fn?'Replace &amp; re-extract':'Choose file &amp; extract'}<input type="file" accept=".pdf" data-kind="${kind}" onchange="uploadAndExtractOne(this)"></label>
+        <button class="btn danger" id="cancel-${kind}" style="display:${status==='extracting'?'inline-block':'none'};font-size:11.5px;padding:5px 10px" onclick="cancelExtraction('${kind}')">Cancel</button>
+      </div>
       <div class="extract-log" id="doc-log-${kind}" style="display:${status?'block':'none'};margin-top:8px;max-height:90px"></div>
     </div>`;
   }).join('');
   // resume polling for any slot already mid-extraction (e.g. after a page reload)
   Object.entries(docStatus).forEach(([kind,status])=>{ if(status==='extracting') pollDocStatus(kind); });
+}
+
+async function cancelExtraction(kind){
+  try{
+    const r = await fetch(`/api/deals/${CURRENT_DEAL}/documents/${kind}/cancel`, {method:'POST'});
+    if(!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    if(DOC_POLL_TIMERS[kind]){ clearInterval(DOC_POLL_TIMERS[kind]); delete DOC_POLL_TIMERS[kind]; }
+    toast(`${DOC_LABELS[kind]} extraction cancelled`);
+    const slot = $(`doc-slot-${kind}`);
+    if(slot){
+      const labelEl = slot.querySelector('.dlabel');
+      if(labelEl) labelEl.innerHTML = `${DOC_LABELS[kind]}${docStatusBadge('failed')}`;
+      const pickEl = $(`pick-${kind}`); if(pickEl) pickEl.style.cssText = '';
+      const cancelEl = $(`cancel-${kind}`); if(cancelEl) cancelEl.style.display = 'none';
+      const logEl = $(`doc-log-${kind}`);
+      if(logEl) logEl.textContent = (logEl.textContent||'') + '\n[cancelled by user]';
+    }
+  }catch(e){ toast('Could not cancel: '+e.message); }
 }
 
 async function uploadAndExtractOne(input){
@@ -368,6 +389,7 @@ function pollDocStatus(kind){
     const labelEl = slot.querySelector('.dlabel');
     const logEl = $(`doc-log-${kind}`);
     const pickLabel = slot.querySelector('.pick');
+    const cancelBtn = $(`cancel-${kind}`);
 
     const elapsed = d.started_at ? (Date.now() - new Date(d.started_at).getTime()) / 1000 : 0;
     const stale = d.status === 'extracting' && elapsed > STALE_EXTRACTION_SECONDS;
@@ -379,6 +401,7 @@ function pollDocStatus(kind){
         '\n[console] Still "extracting" after ' + Math.round(elapsed) + 's — this may be a stuck/killed background job (e.g. a server restart mid-request). You can retry now; a fresh attempt overrides this one regardless of whether it eventually finishes.' : '');
     }
     if(pickLabel) pickLabel.style.cssText = (d.status==='extracting' && !stale) ? 'opacity:.5;pointer-events:none' : '';
+    if(cancelBtn) cancelBtn.style.display = (d.status==='extracting' && !stale) ? 'inline-block' : 'none';
 
     if(d.status==='done' || d.status==='failed'){
       clearInterval(DOC_POLL_TIMERS[kind]); delete DOC_POLL_TIMERS[kind];

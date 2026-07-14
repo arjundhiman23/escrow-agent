@@ -433,3 +433,19 @@ Two fixes:
    retry immediately — a fresh attempt simply overrides whatever the stuck one was doing, whether or not it
    eventually finishes. This also survives a page reload: re-opening the deal recomputes elapsed time from
    the stored timestamp, so a genuinely stuck extraction is never silently invisible.
+
+## Manual cancel for in-flight extraction (this session)
+
+Added an explicit "Cancel" button next to each document's file picker, visible the moment extraction starts
+— no need to wait for the 240s stale-timeout warning to get a way out. Clicking it immediately marks that
+document as failed and re-enables retry.
+
+Cancellation is generation-stamped for safety: every extraction attempt increments a per-document generation
+counter, and a background thread only writes its result if its generation still matches the deal's current
+one when it finishes. This means a cancelled (or superseded by a newer attempt) extraction that happens to
+complete late — the underlying network request obviously can't be killed mid-flight — can never overwrite a
+fresher result. Verified with a synthetic race: a slow "old" extraction was cancelled, a fast "new" one
+completed first, and the old one's late-arriving result was correctly discarded rather than clobbering the
+new data.
+
+New endpoint: `POST /api/deals/{id}/documents/{kind}/cancel`.
