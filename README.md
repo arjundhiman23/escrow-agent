@@ -416,3 +416,20 @@ truncates to the correct length against `fye` — handling three real failure mo
 deals' messy AI output: null entries, wrong-length lists, and non-numeric placeholder values (e.g. "N/A").
 Verified against the exact reported crash plus three related synthetic cases, and re-ran the full 3-deal
 regression to confirm the already-clean Kallagam/Athena profiles are unaffected.
+
+## Fix: extraction could hang indefinitely with no way to recover (this session)
+
+The Anthropic client had no explicit request timeout, so a genuinely stuck connection (or, more likely, the
+background thread being killed mid-request by a Render restart) would leave a document's status at
+"extracting" forever — with the file picker actively disabled, so there was no way to retry without deleting
+and recreating the whole deal.
+
+Two fixes:
+1. Added a 300s timeout to both Anthropic client calls in `deal_extraction.py` — a hung connection now fails
+   cleanly with a clear timeout error instead of blocking forever.
+2. Added stale-extraction detection on the frontend: each document records a `started_at` timestamp when
+   extraction begins; if a document has shown "extracting" for over 240 seconds, the UI shows "taking
+   unusually long" with an explanation, stops polling, and **re-enables the file picker** so the user can
+   retry immediately — a fresh attempt simply overrides whatever the stuck one was doing, whether or not it
+   eventually finishes. This also survives a page reload: re-opening the deal recomputes elapsed time from
+   the stored timestamp, so a genuinely stuck extraction is never silently invisible.

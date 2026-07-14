@@ -110,6 +110,9 @@ async def upload_and_extract_one(deal_id: str, kind: str, file: UploadFile = Fil
     doc_status = dict(meta.get("document_status", {}))
     doc_status[kind] = "extracting"
     meta["document_status"] = doc_status
+    doc_started = dict(meta.get("document_started_at", {}))
+    doc_started[kind] = _now()
+    meta["document_started_at"] = doc_started
     if meta["status"] == "new":
         meta["status"] = "extracting"
     write_deal(ST, deal_id, meta)
@@ -132,6 +135,7 @@ def document_extract_status(deal_id: str, kind: str):
         "log": (meta.get("document_log") or {}).get(kind, []),
         "profile": meta.get("profile"),
         "deal_status": meta.get("status"),
+        "started_at": (meta.get("document_started_at") or {}).get(kind),
     }
 
 

@@ -127,7 +127,7 @@ def run_extraction(documents: dict, model="claude-sonnet-5"):
     """documents: {"escrow_agreement": bytes|None, "sanction_letter": bytes|None, "sanction_note": bytes|None}
     Returns (merged_profile, usage_summary_dict)."""
     import anthropic
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=300.0)   # bounded: a stuck/hung request fails cleanly rather than blocking forever
     tracker = UsageTracker()
     parts = {}
     for kind, data in documents.items():
@@ -142,7 +142,7 @@ def run_single_extraction(doc_kind: str, pdf_bytes: bytes, model="claude-sonnet-
     for the per-document workflow where each document is uploaded and extracted
     independently, with its result merged into the deal's existing profile parts."""
     import anthropic
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=300.0)   # bounded: a stuck/hung request fails cleanly rather than blocking forever
     tracker = UsageTracker()
     result = extract_document(client, model, doc_kind, pdf_bytes, tracker)
     return result, tracker.summary()
