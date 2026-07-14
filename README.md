@@ -384,3 +384,19 @@ this session was pushing frequent fixes.
 than a JSON-parsing/truncation error (e.g. a timeout on very large requests), that's a different failure
 mode from the page-cap or token-limit issues fixed earlier this session — check the document's own
 extraction log in the console for the specific error before assuming it's page-count related.
+
+## Storage status indicator (this session)
+
+Added a persistent banner in the console's rail that shows which storage backend is actually active at
+runtime, since "deals vanishing" reports so far couldn't be confirmed as an S3 issue vs. a silent fallback to
+local disk (which is ephemeral on Render and gets wiped on every restart/redeploy). It checks a real
+`head_bucket` call, not just whether the env var is set, so a bad region/credential/permission also shows up
+immediately as "S3 unreachable" with the actual boto3 error, rather than only surfacing when something is
+written or read.
+
+New endpoint: `GET /api/storage-status` → `{backend: "s3"|"local", bucket, region, reachable, error?}`.
+
+If this ever shows "Ephemeral storage" in a deployed environment, that is the entire explanation for
+recurring "deal vanished" reports — S3_BUCKET is either not set in that environment or not being read
+correctly, and no amount of extraction-flow fixes will change that; the fix is purely an env var check on
+Render's Environment tab.

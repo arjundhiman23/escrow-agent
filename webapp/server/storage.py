@@ -16,6 +16,11 @@ class LocalStorage:
         self.root = root
         os.makedirs(root, exist_ok=True)
 
+    def info(self):
+        return {"backend": "local", "path": os.path.abspath(self.root),
+                "warning": "Local disk is EPHEMERAL on Render — wiped on every restart/redeploy. "
+                          "This should only be active if S3_BUCKET is not set."}
+
     def _p(self, key):
         p = os.path.normpath(os.path.join(self.root, key))
         assert p.startswith(os.path.abspath(self.root) if os.path.isabs(p) else self.root), "bad key"
@@ -52,7 +57,18 @@ class S3Storage:
         import boto3
         self.s3 = boto3.client("s3", region_name=region or os.environ.get("AWS_REGION"))
         self.bucket = bucket
+        self.region = region or os.environ.get("AWS_REGION")
         self.prefix = prefix.strip("/")
+
+    def info(self):
+        result = {"backend": "s3", "bucket": self.bucket, "region": self.region, "prefix": self.prefix}
+        try:
+            self.s3.head_bucket(Bucket=self.bucket)
+            result["reachable"] = True
+        except Exception as e:
+            result["reachable"] = False
+            result["error"] = f"{type(e).__name__}: {e}"
+        return result
 
     def _k(self, key):
         return f"{self.prefix}/{key}" if self.prefix else key

@@ -33,6 +33,10 @@ a{color:var(--escrow)}
 .dstatus.extraction_failed{background:#5A2323;color:#FFC7C0}
 .dstatus.ready{background:#1D4A34;color:#B9EBD1}
 .rail-empty{font-size:12px;color:#8FA9C0;padding:8px 4px;line-height:1.6}
+#storage-status{font-size:11px;border-radius:8px;padding:9px 11px;line-height:1.5}
+#storage-status.ok{background:rgba(14,122,74,.18);color:#B9EBD1}
+#storage-status.warn{background:rgba(180,35,24,.22);color:#FFC7C0;font-weight:600}
+#storage-status .ss-title{font-weight:700;letter-spacing:.3px;text-transform:uppercase;font-size:10px;margin-bottom:3px}
 main{margin-left:270px;padding:34px 40px 60px;max-width:1180px}
 h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .sub{color:var(--steel);font-size:13.5px;margin-bottom:26px}
@@ -133,6 +137,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 <body>
 <aside class="rail">
   <div class="brand">Escrow Analyst<br>Console<small>Deals · CATRA / TRA compliance</small></div>
+  <div id="storage-status"></div>
   <button class="newdeal-btn" onclick="openNewDeal()">+ New deal</button>
   <div class="deal-list" id="deal-list"></div>
 </aside>
@@ -204,6 +209,27 @@ async function createDeal(){
     toast('Deal created - upload documents to extract its CATRA/TRA profile');
   }catch(e){ toast('Could not create deal: '+e.message); }
   $('nd-start').disabled = false;
+}
+
+async function loadStorageStatus(){
+  try{
+    const s = await fetch('/api/storage-status').then(r=>r.json());
+    const el = $('storage-status');
+    if(s.backend === 'local'){
+      el.className = 'warn';
+      el.innerHTML = `<div class="ss-title">⚠ Ephemeral storage</div>Using local disk, not S3 — deals WILL be lost on every restart/redeploy. S3_BUCKET is not set (or not being read) in this environment.`;
+    } else if(s.reachable === false){
+      el.className = 'warn';
+      el.innerHTML = `<div class="ss-title">⚠ S3 unreachable</div>Bucket "${esc(s.bucket)}" (region ${esc(s.region||'unset')}) could not be reached: ${esc(s.error||'unknown error')}`;
+    } else {
+      el.className = 'ok';
+      el.innerHTML = `<div class="ss-title">✓ S3 connected</div>${esc(s.bucket)} (${esc(s.region||'no region set')})`;
+    }
+  }catch(e){
+    const el = $('storage-status');
+    el.className = 'warn';
+    el.innerHTML = `<div class="ss-title">⚠ Status check failed</div>Could not reach the storage-status endpoint.`;
+  }
 }
 
 async function loadDeals(){
@@ -597,10 +623,12 @@ async function loadUsage(){
 }
 
 (async function init(){
+  await loadStorageStatus();
   await loadDeals();
   if(DEALS.length) selectDeal(DEALS[0].deal_id); else renderHome();
 })();
 setInterval(loadDeals, 8000);
+setInterval(loadStorageStatus, 15000);
 </script>
 </body>
 </html>

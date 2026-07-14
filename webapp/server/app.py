@@ -409,6 +409,15 @@ def usage_summary():
     }
 
 
+@app.get("/api/storage-status")
+def storage_status():
+    """Diagnostic: which storage backend is actually active right now, and
+    whether it's reachable. Local disk is ephemeral on Render — if this ever
+    shows 'local' in a deployed environment, deals WILL vanish on every
+    restart/redeploy, regardless of what's set in the dashboard."""
+    return ST.info()
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC, "index.html"))
